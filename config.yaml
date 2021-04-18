@@ -1,0 +1,19 @@
+httpPort: 80
+grpcPort: 8000
+appName: "product"
+ginMode: "debug"
+dbConfig:
+  dsn: root:password@tcp(127.0.0.1:3306)/account?charset=utf8mb4&parseTime=True&loc=Local
+  maxIdleConns: 3
+  maxOpenConns: 10
+localCacheConfig:
+  expirationSeconds: 600
+redisConfig:
+  addrs: "127.0.0.1:7000"
+  password: "pass.123"
+  db: 0
+  poolSize: 10
+  maxRetries: 3
+  expirationSeconds: 900
+  idleTimeoutSeconds: 30
+  
