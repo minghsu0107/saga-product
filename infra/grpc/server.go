@@ -38,9 +38,11 @@ type Server struct {
 }
 
 // NewGRPCServer is the factory of grpc server
-func NewGRPCServer(config *config.Config) *Server {
+func NewGRPCServer(config *config.Config, productSvc product.ProductService, sagaProductSvc product.SagaProductService) *Server {
 	srv := &Server{
-		Port: config.GRPCPort,
+		Port:           config.GRPCPort,
+		productSvc:     productSvc,
+		sagaProductSvc: sagaProductSvc,
 	}
 
 	opts := []grpc.ServerOption{
