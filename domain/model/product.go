@@ -15,12 +15,29 @@ type CartItem struct {
 	Amount    int64
 }
 
-// ProductStatus enumeration
-type ProductStatus int
+// PurchasedItem value object
+type PurchasedItem struct {
+	ProductID uint64
+	Amount    int64
+}
+
+// Status enumeration
+type Status int
 
 const (
 	// ProductOk is ok status
-	ProductOk ProductStatus = iota
+	ProductOk Status = iota
 	// ProductNotFound is not found status
 	ProductNotFound
 )
+
+type ProductStatus struct {
+	ProductID uint64
+	Status    Status
+}
+
+type ProductCatalog struct {
+	ID        uint64
+	Name      string
+	Inventory int64
+}

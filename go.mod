@@ -3,10 +3,12 @@ module github.com/minghsu0107/saga-product
 go 1.15
 
 require (
+	github.com/allegro/bigcache/v2 v2.2.5 // indirect
 	github.com/allegro/bigcache/v3 v3.0.0
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/go-redis/redis/v8 v8.8.2
 	github.com/go-redsync/redsync/v4 v4.3.0
+	github.com/golang/protobuf v1.4.3
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/kelseyhightower/envconfig v1.4.0

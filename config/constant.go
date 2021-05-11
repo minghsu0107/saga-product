@@ -9,4 +9,6 @@ var (
 	InvalidationTopic = "invalidate_cache"
 	// CustomerKey is the key name for retrieving jwt-decoded customer id in a http request context
 	CustomerKey HTTPContextKey = "customer_key"
+	// IdempotencyKeyHeader is the idempotencyKey header
+	IdempotencyKeyHeader = "Idempotency-Key"
 )

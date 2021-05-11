@@ -16,6 +16,7 @@ import (
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	pb "github.com/minghsu0107/saga-pb"
 	"github.com/minghsu0107/saga-product/config"
+	"github.com/minghsu0107/saga-product/service/product"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/keepalive"
@@ -30,8 +31,10 @@ var (
 
 // Server is the grpc server type
 type Server struct {
-	Port string
-	s    *grpc.Server
+	Port           string
+	s              *grpc.Server
+	productSvc     product.ProductService
+	sagaProductSvc product.SagaProductService
 }
 
 // NewGRPCServer is the factory of grpc server
@@ -90,6 +93,7 @@ func NewGRPCServer(config *config.Config) *Server {
 	)
 	srv.s = grpc.NewServer(opts...)
 	pb.RegisterProductServiceServer(srv.s, srv)
+	pb.RegisterSagaProductServiceServer(srv.s, srv)
 
 	reflection.Register(srv.s)
 	return srv
