@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -71,7 +72,13 @@ func (srv *Server) UpdateProductInventory(ctx context.Context, req *pb.UpdatePro
 	if !ok || len(md.Get(config.IdempotencyKeyHeader)) == 0 {
 		return nil, status.Error(codes.Internal, "error parsing metadata")
 	}
-	idempotencyKey := md.Get(config.IdempotencyKeyHeader)[0]
+	idempotencyKey, err := strconv.ParseUint(md.Get(config.IdempotencyKeyHeader)[0], 10, 64)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("internal error: %v", err),
+		)
+	}
 
 	pbPurchasedItems := req.PurchasedItems
 	var purchasedItems []model.PurchasedItem
@@ -82,7 +89,7 @@ func (srv *Server) UpdateProductInventory(ctx context.Context, req *pb.UpdatePro
 		})
 	}
 
-	err := srv.sagaProductSvc.UpdateProductInventory(ctx, idempotencyKey, &purchasedItems)
+	err = srv.sagaProductSvc.UpdateProductInventory(ctx, idempotencyKey, &purchasedItems)
 	if err != nil {
 		return &pb.GeneralResponse{
 			Success:   false,
@@ -102,8 +109,15 @@ func (srv *Server) RollbackProductInventory(ctx context.Context, req *pb.Rollbac
 	if !ok || len(md.Get(config.IdempotencyKeyHeader)) == 0 {
 		return nil, status.Error(codes.Internal, "error parsing metadata")
 	}
-	idempotencyKey := md.Get(config.IdempotencyKeyHeader)[0]
-	err := srv.sagaProductSvc.RollbackProductInventory(ctx, idempotencyKey)
+	idempotencyKey, err := strconv.ParseUint(md.Get(config.IdempotencyKeyHeader)[0], 10, 64)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("internal error: %v", err),
+		)
+	}
+
+	err = srv.sagaProductSvc.RollbackProductInventory(ctx, idempotencyKey)
 	if err != nil {
 		return &pb.GeneralResponse{
 			Success:   false,

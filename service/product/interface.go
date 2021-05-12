@@ -13,6 +13,6 @@ type ProductService interface {
 }
 
 type SagaProductService interface {
-	UpdateProductInventory(ctx context.Context, idempotencyKey string, purchasedItems *[]model.PurchasedItem) error
-	RollbackProductInventory(ctx context.Context, idempotencyKey string) error
+	UpdateProductInventory(ctx context.Context, idempotencyKey uint64, purchasedItems *[]model.PurchasedItem) error
+	RollbackProductInventory(ctx context.Context, idempotencyKey uint64) error
 }
