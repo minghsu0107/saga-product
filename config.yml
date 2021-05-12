@@ -2,6 +2,7 @@ httpPort: 80
 grpcPort: 8000
 appName: "product"
 ginMode: "debug"
+resolver: ""
 dbConfig:
   dsn: root:password@tcp(127.0.0.1:3306)/account?charset=utf8mb4&parseTime=True&loc=Local
   maxIdleConns: 3
@@ -16,4 +17,8 @@ redisConfig:
   maxRetries: 3
   expirationSeconds: 900
   idleTimeoutSeconds: 30
-  
+rpcEndpoints:
+  authSvcHost: ""
+serviceOptions:
+  rps: 100
+  timeoutSecond: 10

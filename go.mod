@@ -6,6 +6,7 @@ require (
 	github.com/allegro/bigcache/v2 v2.2.5 // indirect
 	github.com/allegro/bigcache/v3 v3.0.0
 	github.com/avast/retry-go v3.0.0+incompatible
+	github.com/gin-gonic/gin v1.7.1
 	github.com/go-redis/redis/v8 v8.8.2
 	github.com/go-redsync/redsync/v4 v4.3.0
 	github.com/golang/protobuf v1.4.3
@@ -15,6 +16,7 @@ require (
 	github.com/minghsu0107/saga-pb v0.3.0
 	github.com/prometheus/client_golang v1.10.0 // indirect
 	github.com/sirupsen/logrus v1.8.1
+	github.com/slok/go-http-metrics v0.9.0
 	github.com/sony/sonyflake v1.0.0
 	go.opencensus.io v0.23.0
 	google.golang.org/grpc v1.37.0
