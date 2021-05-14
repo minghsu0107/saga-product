@@ -2,11 +2,16 @@ package model
 
 // Product entity
 type Product struct {
-	ID          uint64
+	ID        uint64
+	Detail    *ProductDetail
+	Inventory int64
+}
+
+// ProductDetail value object
+type ProductDetail struct {
 	Name        string
 	Description string
 	BrandName   string
-	Inventory   int64
 }
 
 // CartItem value object

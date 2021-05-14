@@ -17,8 +17,3 @@ redisConfig:
   maxRetries: 3
   expirationSeconds: 900
   idleTimeoutSeconds: 30
-rpcEndpoints:
-  authSvcHost: ""
-serviceOptions:
-  rps: 100
-  timeoutSecond: 10

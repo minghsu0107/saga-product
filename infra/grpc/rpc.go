@@ -43,27 +43,27 @@ func (srv *Server) CheckProducts(ctx context.Context, req *pb.CheckProductsReque
 	}, nil
 }
 
-func (srv *Server) GetProductDetails(ctx context.Context, req *pb.GetProductDetailsRequest) (*pb.ProductDetails, error) {
+func (srv *Server) GetProducts(ctx context.Context, req *pb.GetProductsRequest) (*pb.Products, error) {
 	productIDs := req.ProductId
-	productDetails, err := srv.productSvc.GetProductDetails(ctx, productIDs)
+	products, err := srv.productSvc.GetProducts(ctx, productIDs)
 	if err != nil {
 		return nil, status.Errorf(
 			codes.Internal,
 			fmt.Sprintf("internal error: %v", err),
 		)
 	}
-	var pbProductDetails []*pb.ProductDetail
-	for _, productDetail := range *productDetails {
-		pbProductDetails = append(pbProductDetails, &pb.ProductDetail{
-			ProductId:   productDetail.ID,
-			ProductName: productDetail.Name,
-			Description: productDetail.Description,
-			BrandName:   productDetail.BrandName,
-			Inventory:   productDetail.Inventory,
+	var pbProducts []*pb.Product
+	for _, product := range *products {
+		pbProducts = append(pbProducts, &pb.Product{
+			ProductId:   product.ID,
+			ProductName: product.Detail.Name,
+			Description: product.Detail.Description,
+			BrandName:   product.Detail.BrandName,
+			Inventory:   product.Inventory,
 		})
 	}
-	return &pb.ProductDetails{
-		ProductDetails: pbProductDetails,
+	return &pb.Products{
+		Products: pbProducts,
 	}, nil
 }
 

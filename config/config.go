@@ -2,7 +2,6 @@ package config
 
 import (
 	"os"
-	"time"
 
 	"github.com/kelseyhightower/envconfig"
 	log "github.com/sirupsen/logrus"
@@ -19,8 +18,6 @@ type Config struct {
 	LocalCacheConfig *LocalCacheConfig `yaml:"localCacheConfig"`
 	RedisConfig      *RedisConfig      `yaml:"redisConfig"`
 	Resolver         string            `yaml:"resolver" envconfig:"RESOLVER"`
-	RPCEndpoints     *RPCEndpoints     `yaml:"rpcEndpoints"`
-	ServiceOptions   *ServiceOptions   `yaml:"serviceOptions"`
 	Logger           *Logger
 }
 
@@ -45,18 +42,6 @@ type RedisConfig struct {
 	MaxRetries         int    `yaml:"maxRetries" envconfig:"REDIS_MAX_RETRIES"`
 	ExpirationSeconds  int64  `yaml:"expirationSeconds" envconfig:"REDIS_EXPIRATION_SECONDS"`
 	IdleTimeoutSeconds int64  `yaml:"idleTimeoutSeconds" envconfig:"REDIS_IDLE_TIMEOUT_SECONDS"`
-}
-
-// RPCEndpoints wraps all rpc server urls
-type RPCEndpoints struct {
-	AuthSvcHost string `yaml:"authSvcHost" envconfig:"RPC_AUTH_SVC_HOST"`
-}
-
-// ServiceOptions defines options for rpc calls between services
-type ServiceOptions struct {
-	Rps           int `yaml:"rps" envconfig:"SERVICE_OPTIONS_RPS"`
-	TimeoutSecond int `yaml:"timeoutSecond" envconfig:"SERVICE_OPTIONS_TIMEOUT_SECOND"`
-	Timeout       time.Duration
 }
 
 // NewConfig is the factory of Config instance
