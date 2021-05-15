@@ -2,10 +2,14 @@ package proxy
 
 import (
 	"context"
+	"strconv"
 
+	conf "github.com/minghsu0107/saga-account/config"
 	domain_model "github.com/minghsu0107/saga-product/domain/model"
 	"github.com/minghsu0107/saga-product/infra/cache"
+	"github.com/minghsu0107/saga-product/pkg"
 	"github.com/minghsu0107/saga-product/repo"
+	"github.com/sirupsen/logrus"
 )
 
 // ProductRepoCache interface
@@ -23,18 +27,57 @@ type ProductRepoCacheImpl struct {
 	productRepo repo.ProductRepository
 	lc          cache.LocalCache
 	rc          cache.RedisCache
+	logger      *logrus.Entry
 }
 
-func NewProductRepoCache(repo repo.ProductRepository, lc cache.LocalCache, rc cache.RedisCache) ProductRepoCache {
+// RedisProductInventory stores product inventory in redis
+type RedisProductInventory struct {
+	Inventory int64 `redis:"inventory"`
+}
+
+func NewProductRepoCache(config *conf.Config, repo repo.ProductRepository, lc cache.LocalCache, rc cache.RedisCache) ProductRepoCache {
 	return &ProductRepoCacheImpl{
 		productRepo: repo,
 		lc:          lc,
 		rc:          rc,
+		logger:      config.Logger.ContextLogger.WithField("type", "cache"),
 	}
 }
 
 func (c *ProductRepoCacheImpl) CheckProduct(ctx context.Context, cartItem *domain_model.CartItem) (*repo.ProductStatus, error) {
-	return nil, nil
+	status := &repo.ProductStatus{}
+	key := pkg.Join("productcheck:", strconv.FormatUint(cartItem.ProductID, 10))
+
+	ok, err := c.lc.Get(key, status)
+	if ok && err == nil {
+		return status, nil
+	}
+
+	ok, err = c.rc.Get(ctx, key, status)
+	if ok && err == nil {
+		c.logError(c.lc.Set(key, status))
+		return status, nil
+	}
+
+	// get lock (request coalescing)
+	mutex := c.rc.GetMutex(pkg.Join("mutex:", key))
+	if err := mutex.Lock(); err != nil {
+		return nil, err
+	}
+	defer mutex.Unlock()
+
+	ok, err = c.rc.Get(ctx, key, status)
+	if ok && err == nil {
+		c.logError(c.lc.Set(key, status))
+		return status, nil
+	}
+	status, err = c.productRepo.CheckProduct(ctx, cartItem)
+	if err != nil {
+		return nil, err
+	}
+
+	c.logError(c.rc.Set(ctx, key, status))
+	return status, nil
 }
 
 func (c *ProductRepoCacheImpl) ListProducts(ctx context.Context, offset, size int) (*[]repo.ProductCatalog, error) {
@@ -42,11 +85,70 @@ func (c *ProductRepoCacheImpl) ListProducts(ctx context.Context, offset, size in
 }
 
 func (c *ProductRepoCacheImpl) GetProductDetail(ctx context.Context, productID uint64) (*repo.ProductDetail, error) {
-	return nil, nil
+	detail := &repo.ProductDetail{}
+	key := pkg.Join("productdetail:", strconv.FormatUint(productID, 10))
+
+	ok, err := c.lc.Get(key, detail)
+	if ok && err == nil {
+		return detail, nil
+	}
+
+	ok, err = c.rc.Get(ctx, key, detail)
+	if ok && err == nil {
+		c.logError(c.lc.Set(key, detail))
+		return detail, nil
+	}
+
+	// get lock (request coalescing)
+	mutex := c.rc.GetMutex(pkg.Join("mutex:", key))
+	if err := mutex.Lock(); err != nil {
+		return nil, err
+	}
+	defer mutex.Unlock()
+
+	ok, err = c.rc.Get(ctx, key, detail)
+	if ok && err == nil {
+		c.logError(c.lc.Set(key, detail))
+		return detail, nil
+	}
+	detail, err = c.productRepo.GetProductDetail(ctx, productID)
+	if err != nil {
+		return nil, err
+	}
+
+	c.logError(c.rc.Set(ctx, key, detail))
+	return detail, nil
 }
 
 func (c *ProductRepoCacheImpl) GetProductInventory(ctx context.Context, productID uint64) (int64, error) {
-	return 0, nil
+	redisInventory := &RedisProductInventory{}
+	key := pkg.Join("productinventory:", strconv.FormatUint(productID, 10))
+
+	ok, err := c.rc.Get(ctx, key, redisInventory)
+	if ok && err == nil {
+		c.logError(c.lc.Set(key, redisInventory))
+		return redisInventory.Inventory, nil
+	}
+
+	// get lock (request coalescing)
+	mutex := c.rc.GetMutex(pkg.Join("mutex:", key))
+	if err := mutex.Lock(); err != nil {
+		return 0, err
+	}
+	defer mutex.Unlock()
+
+	ok, err = c.rc.Get(ctx, key, redisInventory)
+	if ok && err == nil {
+		return redisInventory.Inventory, nil
+	}
+	var inventory int64
+	inventory, err = c.productRepo.GetProductInventory(ctx, productID)
+	if err != nil {
+		return 0, err
+	}
+
+	c.logError(c.rc.Set(ctx, key, &RedisProductInventory{inventory}))
+	return inventory, nil
 }
 
 func (c *ProductRepoCacheImpl) CreateProduct(ctx context.Context, product *domain_model.Product) error {
@@ -54,5 +156,29 @@ func (c *ProductRepoCacheImpl) CreateProduct(ctx context.Context, product *domai
 }
 
 func (c *ProductRepoCacheImpl) UpdateProductInventory(ctx context.Context, idempotencyKey uint64, purchasedItems *[]domain_model.PurchasedItem) error {
+	err := c.productRepo.UpdateProductInventory(ctx, idempotencyKey, purchasedItems)
+	if err != nil {
+		return err
+	}
+	var cmds []cache.RedisCmd
+	for _, purchasedItem := range *purchasedItems {
+		cmds = append(cmds, cache.RedisCmd{
+			OpType: cache.INCRBY,
+			Payload: cache.RedisIncrByPayload{
+				Key: pkg.Join("productinventory:", strconv.FormatUint(purchasedItem.ProductID, 10)),
+				Val: purchasedItem.Amount,
+			},
+		})
+	}
+	if err := c.rc.ExecPipeLine(ctx, &cmds); err != nil {
+		return err
+	}
 	return nil
+}
+
+func (c *ProductRepoCacheImpl) logError(err error) {
+	if err == nil {
+		return
+	}
+	c.logger.Error(err)
 }

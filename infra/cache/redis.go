@@ -24,21 +24,21 @@ var (
 
 // RedisCache is the interface of redis cache
 type RedisCache interface {
-	Get(key string, dst interface{}) (bool, error)
-	Set(key string, val interface{}) error
-	HMGet(key string, dst interface{}, fields ...string) error
-	HSet(key string, values map[string]interface{}) error
-	Delete(key string) error
+	Get(ctx context.Context, key string, dst interface{}) (bool, error)
+	Set(ctx context.Context, key string, val interface{}) error
+	HMGet(ctx context.Context, key string, dst interface{}, fields ...string) error
+	HSet(ctx context.Context, key string, values map[string]interface{}) error
+	IncrBy(ctx context.Context, key string, val int64) error
+	Delete(ctx context.Context, key string) error
 	GetMutex(mutexname string) *redsync.Mutex
-	ExecPipeLine(cmds *[]RedisCmd) error
-	Publish(topic string, payload interface{}) error
+	ExecPipeLine(ctx context.Context, cmds *[]RedisCmd) error
+	Publish(ctx context.Context, topic string, payload interface{}) error
 }
 
 // RedisCacheImpl is the redis cache client type
 type RedisCacheImpl struct {
 	client     *redis.ClusterClient
 	rs         *redsync.Redsync
-	ctx        context.Context
 	expiration int64
 }
 
@@ -50,6 +50,8 @@ const (
 	SET RedisOpType = iota
 	// DELETE represents delete operation
 	DELETE
+	// INCRBY represents incrBy operation
+	INCRBY
 )
 
 // RedisPayload is a abstract interface for payload type
@@ -70,11 +72,21 @@ type RedisDeletePayload struct {
 	Key string
 }
 
+// RedisIncrByPayload is the payload type of incrBy method
+type RedisIncrByPayload struct {
+	RedisPayload
+	Key string
+	Val int64
+}
+
 // Payload implements abstract interface
 func (RedisSetPayload) Payload() {}
 
 // Payload implements abstract interface
 func (RedisDeletePayload) Payload() {}
+
+// Payload implements abstract interface
+func (RedisIncrByPayload) Payload() {}
 
 // RedisCmd represents an operation and its payload
 type RedisCmd struct {
@@ -109,21 +121,19 @@ func NewRedisClient(config *config.Config) (*redis.ClusterClient, error) {
 
 // NewRedisCache is the factory of redis cache
 func NewRedisCache(config *config.Config, client *redis.ClusterClient) RedisCache {
-	ctx := context.Background()
 	pool := goredis.NewPool(client)
 	rs := redsync.New(pool)
 
 	return &RedisCacheImpl{
 		client:     client,
 		rs:         rs,
-		ctx:        ctx,
 		expiration: config.RedisConfig.ExpirationSeconds,
 	}
 }
 
 // Get returns true if the key already exists and set dst to the corresponding value
-func (rc *RedisCacheImpl) Get(key string, dst interface{}) (bool, error) {
-	val, err := rc.client.Get(rc.ctx, key).Result()
+func (rc *RedisCacheImpl) Get(ctx context.Context, key string, dst interface{}) (bool, error) {
+	val, err := rc.client.Get(ctx, key).Result()
 	if err == redis.Nil {
 		return false, nil
 	} else if err != nil {
@@ -135,28 +145,32 @@ func (rc *RedisCacheImpl) Get(key string, dst interface{}) (bool, error) {
 }
 
 // Set sets a key-value pair
-func (rc *RedisCacheImpl) Set(key string, val interface{}) error {
+func (rc *RedisCacheImpl) Set(ctx context.Context, key string, val interface{}) error {
 	strVal, err := json.Marshal(val)
 	if err != nil {
 		return err
 	}
-	if err := rc.client.Set(rc.ctx, key, strVal, getRandomExpiration(rc.expiration)).Err(); err != nil {
+	if err := rc.client.Set(ctx, key, strVal, getRandomExpiration(rc.expiration)).Err(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (rc *RedisCacheImpl) HMGet(key string, dst interface{}, fields ...string) error {
-	return rc.client.HMGet(rc.ctx, key, fields...).Scan(dst)
+func (rc *RedisCacheImpl) HMGet(ctx context.Context, key string, dst interface{}, fields ...string) error {
+	return rc.client.HMGet(ctx, key, fields...).Scan(dst)
 }
 
-func (rc *RedisCacheImpl) HSet(key string, values map[string]interface{}) error {
-	return rc.client.HSet(rc.ctx, key, values).Err()
+func (rc *RedisCacheImpl) HSet(ctx context.Context, key string, values map[string]interface{}) error {
+	return rc.client.HSet(ctx, key, values).Err()
+}
+
+func (rc *RedisCacheImpl) IncrBy(ctx context.Context, key string, val int64) error {
+	return rc.client.IncrBy(ctx, key, val).Err()
 }
 
 // Delete deletes a key
-func (rc *RedisCacheImpl) Delete(key string) error {
-	if err := rc.client.Del(rc.ctx, key).Err(); err != nil {
+func (rc *RedisCacheImpl) Delete(ctx context.Context, key string) error {
+	if err := rc.client.Del(ctx, key).Err(); err != nil {
 		return err
 	}
 	return nil
@@ -167,7 +181,7 @@ func (rc *RedisCacheImpl) GetMutex(mutexname string) *redsync.Mutex {
 }
 
 // ExecPipeLine execute the given commands in a pipline
-func (rc *RedisCacheImpl) ExecPipeLine(cmds *[]RedisCmd) error {
+func (rc *RedisCacheImpl) ExecPipeLine(ctx context.Context, cmds *[]RedisCmd) error {
 	pipe := rc.client.Pipeline()
 	var pipelineCmds []RedisPipelineCmd
 	for _, cmd := range *cmds {
@@ -179,18 +193,24 @@ func (rc *RedisCacheImpl) ExecPipeLine(cmds *[]RedisCmd) error {
 			}
 			pipelineCmds = append(pipelineCmds, RedisPipelineCmd{
 				OpType: SET,
-				Cmd:    pipe.Set(rc.ctx, cmd.Payload.(RedisSetPayload).Key, strVal, getRandomExpiration(rc.expiration)),
+				Cmd:    pipe.Set(ctx, cmd.Payload.(RedisSetPayload).Key, strVal, getRandomExpiration(rc.expiration)),
 			})
 		case DELETE:
 			pipelineCmds = append(pipelineCmds, RedisPipelineCmd{
 				OpType: DELETE,
-				Cmd:    pipe.Del(rc.ctx, cmd.Payload.(RedisDeletePayload).Key),
+				Cmd:    pipe.Del(ctx, cmd.Payload.(RedisDeletePayload).Key),
+			})
+		case INCRBY:
+			payload := cmd.Payload.(RedisIncrByPayload)
+			pipelineCmds = append(pipelineCmds, RedisPipelineCmd{
+				OpType: INCRBY,
+				Cmd:    pipe.IncrBy(ctx, payload.Key, payload.Val),
 			})
 		default:
 			return ErrRedisCmdNotFound
 		}
 	}
-	_, err := pipe.Exec(rc.ctx)
+	_, err := pipe.Exec(ctx)
 	if err != nil {
 		return err
 	}
@@ -210,12 +230,12 @@ func (rc *RedisCacheImpl) ExecPipeLine(cmds *[]RedisCmd) error {
 	return nil
 }
 
-func (rc *RedisCacheImpl) Publish(topic string, payload interface{}) error {
+func (rc *RedisCacheImpl) Publish(ctx context.Context, topic string, payload interface{}) error {
 	strVal, err := json.Marshal(payload)
 	if err != nil {
 		return err
 	}
-	return rc.client.Publish(rc.ctx, topic, strVal).Err()
+	return rc.client.Publish(ctx, topic, strVal).Err()
 }
 
 func getRandomExpiration(expiration int64) time.Duration {
