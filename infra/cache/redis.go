@@ -225,6 +225,10 @@ func (rc *RedisCacheImpl) ExecPipeLine(ctx context.Context, cmds *[]RedisCmd) er
 			if err := executedCmd.Cmd.(*redis.IntCmd).Err(); err != nil {
 				return err
 			}
+		case INCRBY:
+			if err := executedCmd.Cmd.(*redis.IntCmd).Err(); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

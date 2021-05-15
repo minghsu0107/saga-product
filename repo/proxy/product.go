@@ -170,9 +170,7 @@ func (c *ProductRepoCacheImpl) UpdateProductInventory(ctx context.Context, idemp
 			},
 		})
 	}
-	if err := c.rc.ExecPipeLine(ctx, &cmds); err != nil {
-		return err
-	}
+	c.logger.Error(c.rc.ExecPipeLine(ctx, &cmds))
 	return nil
 }
 

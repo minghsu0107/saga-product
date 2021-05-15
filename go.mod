@@ -4,7 +4,6 @@ go 1.15
 
 require (
 	github.com/allegro/bigcache/v3 v3.0.0
-	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/gin-gonic/gin v1.7.1
 	github.com/go-redis/redis/v8 v8.8.2
 	github.com/go-redsync/redsync/v4 v4.3.0
