@@ -8,6 +8,7 @@ require (
 	github.com/go-redis/redis/v8 v8.8.2
 	github.com/go-redsync/redsync/v4 v4.3.0
 	github.com/golang/protobuf v1.5.2
+	github.com/google/wire v0.4.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/kelseyhightower/envconfig v1.4.0

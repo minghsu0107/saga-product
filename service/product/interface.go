@@ -9,7 +9,7 @@ import (
 // ProductService interface
 type ProductService interface {
 	CheckProducts(ctx context.Context, cartItems *[]model.CartItem) (*[]model.ProductStatus, error)
-	ListProducts(ctx context.Context) (*[]model.ProductCatalog, error)
+	ListProducts(ctx context.Context, offset, size int) (*[]model.ProductCatalog, error)
 	GetProducts(ctx context.Context, productIDs []uint64) (*[]model.Product, error)
 	CreateProduct(ctx context.Context, product *model.Product) error
 }
