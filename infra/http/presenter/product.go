@@ -25,6 +25,6 @@ type Productcatalog struct {
 
 // Pagination payload
 type Pagination struct {
-	Offset int `form:"offset" binding:"required,numeric,min=0"`
+	Offset int `form:"offset" binding:"required,numeric"`
 	Size   int `form:"size" binding:"required,numeric,min=1,max=500"`
 }
