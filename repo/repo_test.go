@@ -52,6 +52,7 @@ var _ = Describe("test repo", func() {
 				Name:        "first",
 				Description: "first product",
 				BrandName:   "test",
+				Price:       100,
 			},
 			Inventory: 10,
 		},
@@ -60,6 +61,7 @@ var _ = Describe("test repo", func() {
 				Name:        "second",
 				Description: "second product",
 				BrandName:   "test",
+				Price:       200,
 			},
 			Inventory: 10,
 		},
@@ -115,6 +117,7 @@ var _ = Describe("test repo", func() {
 					Name:        products[i].Detail.Name,
 					Description: products[i].Detail.Description,
 					BrandName:   products[i].Detail.BrandName,
+					Price:       products[i].Detail.Price,
 				}))
 			}
 		})

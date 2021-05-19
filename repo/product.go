@@ -43,6 +43,7 @@ type ProductCatalog struct {
 	ID        uint64
 	Name      string
 	Inventory int64
+	Price     int64
 }
 
 // ProductDetail select schema
@@ -50,6 +51,7 @@ type ProductDetail struct {
 	Name        string
 	Description string
 	BrandName   string
+	Price       int64
 }
 
 // ProductRepositoryImpl implements ProductRepository interface
@@ -88,7 +90,7 @@ func (repo *ProductRepositoryImpl) CheckProduct(ctx context.Context, cartItem *d
 // ListProducts method
 func (repo *ProductRepositoryImpl) ListProducts(ctx context.Context, offset, size int) (*[]ProductCatalog, error) {
 	var catalogs []ProductCatalog
-	if err := paginate(repo.db, offset, size).Model(&model.Product{}).Select("id", "name", "inventory").Find(&catalogs).Error; err != nil {
+	if err := paginate(repo.db, offset, size).Model(&model.Product{}).Select("id", "name", "inventory", "price").Find(&catalogs).Error; err != nil {
 		return nil, err
 	}
 	return &catalogs, nil
@@ -97,7 +99,7 @@ func (repo *ProductRepositoryImpl) ListProducts(ctx context.Context, offset, siz
 // GetProductDetails method
 func (repo *ProductRepositoryImpl) GetProductDetail(ctx context.Context, productID uint64) (*ProductDetail, error) {
 	var productDetail ProductDetail
-	if err := repo.db.Model(&model.Product{}).Select("name", "description", "brand_name").Where("id = ?", productID).First(&productDetail).WithContext(ctx).Error; err != nil {
+	if err := repo.db.Model(&model.Product{}).Select("name", "description", "brand_name", "price").Where("id = ?", productID).First(&productDetail).WithContext(ctx).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("product not found; product ID: %v", productID)
 		}
@@ -130,6 +132,7 @@ func (repo *ProductRepositoryImpl) CreateProduct(ctx context.Context, product *d
 		Description: product.Detail.Description,
 		BrandName:   product.Detail.BrandName,
 		Inventory:   product.Inventory,
+		Price:       product.Detail.Price,
 	}).WithContext(ctx).Error; err != nil {
 		return err
 	}

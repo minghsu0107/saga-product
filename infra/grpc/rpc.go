@@ -60,6 +60,7 @@ func (srv *Server) GetProducts(ctx context.Context, req *pb.GetProductsRequest) 
 			Description: product.Detail.Description,
 			BrandName:   product.Detail.BrandName,
 			Inventory:   product.Inventory,
+			Price:       product.Detail.Price,
 		})
 	}
 	return &pb.Products{

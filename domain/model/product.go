@@ -12,6 +12,7 @@ type ProductDetail struct {
 	Name        string
 	Description string
 	BrandName   string
+	Price       int64
 }
 
 // CartItem value object
@@ -36,13 +37,16 @@ const (
 	ProductNotFound
 )
 
+// ProductStatus value object
 type ProductStatus struct {
 	ProductID uint64
 	Status    Status
 }
 
+// ProductCatalog value object
 type ProductCatalog struct {
 	ID        uint64
 	Name      string
 	Inventory int64
+	Price     int64
 }

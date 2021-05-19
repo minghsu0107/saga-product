@@ -51,6 +51,7 @@ func (svc *ProductServiceImpl) ListProducts(ctx context.Context, offset, size in
 			ID:        repoProductCatalog.ID,
 			Name:      repoProductCatalog.Name,
 			Inventory: repoProductCatalog.Inventory,
+			Price:     repoProductCatalog.Price,
 		})
 	}
 	return &productCatalogs, nil
@@ -75,6 +76,7 @@ func (svc *ProductServiceImpl) GetProducts(ctx context.Context, productIDs []uin
 				Name:        productDetail.Name,
 				Description: productDetail.Description,
 				BrandName:   productDetail.BrandName,
+				Price:       productDetail.Price,
 			},
 			Inventory: inventory,
 		})
