@@ -1,0 +1,67 @@
+kind: pipeline
+type: docker
+name: default
+
+platform:
+  os: linux
+  arch: amd64
+
+services:
+- name: mysql
+  image: mysql:8.0
+  environment:
+    MYSQL_USER: ming
+    MYSQL_PASSWORD: password
+    MYSQL_ROOT_PASSWORD: password
+    MYSQL_DATABASE: product
+  command:
+    - mysqld
+    - --default-authentication-plugin=mysql_native_password
+    - --character-set-server=utf8mb4
+    - --collation-server=utf8mb4_unicode_ci
+    - --lower_case_table_names=1
+    - --max_allowed_packet=128M
+
+x-build-docker-image: &x-build-docker-image
+  image: plugins/docker
+  settings:
+    custom_labels:
+    - 'BUILD_NUMBER=${DRONE_BUILD_NUMBER}'
+    - 'BUILD_SHA=${DRONE_COMMIT_SHA}'
+    tags:
+      - ${DRONE_COMMIT_BRANCH}-${DRONE_COMMIT_SHA:0:7}
+      - latest
+    username:
+      from_secret: docker_username
+    password:
+      from_secret: docker_password
+
+steps:
+- name: pingdb
+  image: mysql:8.0
+  commands:
+  - /bin/sh -c 'until mysql -hmysql -uming -ppassword; do echo "Waiting for db..."; sleep 1; done'
+- name: test
+  pull: if-not-exists
+  image: golang:1.15.2
+  environment:
+    DB_DSN: "ming:password@tcp(mysql:3306)/product?charset=utf8mb4&parseTime=True&loc=Local"
+  commands:
+  - go mod download
+  - make test
+  depends_on:
+    - pingdb
+- name: push-registry
+  <<: *x-build-docker-image
+  settings:
+    repo: minghsu0107/saga-product
+    dockerfile: Dockerfile
+    context: .
+  depends_on:
+    - test
+  when:
+    event: push
+
+trigger:
+  branch:
+  - main

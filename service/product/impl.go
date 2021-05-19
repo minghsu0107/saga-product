@@ -122,11 +122,14 @@ func NewSagaProductService(config *conf.Config, productRepo proxy.ProductRepoCac
 func (svc *SagaProductServiceImpl) UpdateProductInventory(ctx context.Context, idempotencyKey uint64, purchasedItems *[]model.PurchasedItem) error {
 	err := svc.productRepo.UpdateProductInventory(ctx, idempotencyKey, purchasedItems)
 	if err != nil {
-		if err != repo.ErrInsuffientInventory {
-			svc.logger.Error(err)
-			return err
+		if err == repo.ErrInsuffientInventory {
+			return ErrInsuffientInventory
 		}
-		return ErrInsuffientInventory
+		if err == repo.ErrInvalidIdempotency {
+			return ErrInvalidIdempotency
+		}
+		svc.logger.Error(err)
+		return err
 	}
 	return nil
 }

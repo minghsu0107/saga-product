@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	conf "github.com/minghsu0107/saga-account/config"
+	conf "github.com/minghsu0107/saga-product/config"
 	domain_model "github.com/minghsu0107/saga-product/domain/model"
 	"github.com/minghsu0107/saga-product/infra/cache"
 	"github.com/minghsu0107/saga-product/pkg"

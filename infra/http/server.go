@@ -59,6 +59,12 @@ func NewServer(config *conf.Config, engine *gin.Engine, router *Router) *Server 
 
 // RegisterRoutes method register all endpoints
 func (s *Server) RegisterRoutes() {
+	apiGroup := s.Engine.Group("/api")
+	{
+		apiGroup.GET("/product", s.Router.GetProduct)
+		apiGroup.GET("/products", s.Router.ListProducts)
+		apiGroup.POST("/product", s.Router.CreateProduct)
+	}
 }
 
 // Run is a method for starting server

@@ -88,7 +88,7 @@ func (repo *ProductRepositoryImpl) CheckProduct(ctx context.Context, cartItem *d
 // ListProducts method
 func (repo *ProductRepositoryImpl) ListProducts(ctx context.Context, offset, size int) (*[]ProductCatalog, error) {
 	var catalogs []ProductCatalog
-	if err := paginate(repo.db, offset, size).Select("id", "name", "inventory").Find(&catalogs).Error; err != nil {
+	if err := paginate(repo.db, offset, size).Model(&model.Product{}).Select("id", "name", "inventory").Find(&catalogs).Error; err != nil {
 		return nil, err
 	}
 	return &catalogs, nil
@@ -138,6 +138,16 @@ func (repo *ProductRepositoryImpl) CreateProduct(ctx context.Context, product *d
 
 // UpdateProductInventory method
 func (repo *ProductRepositoryImpl) UpdateProductInventory(ctx context.Context, idempotencyKey uint64, purchasedItems *[]domain_model.PurchasedItem) error {
+	var err error
+	var idempotency model.Idempotency
+	err = repo.db.Model(&model.Idempotency{}).Where("id = ?", idempotencyKey).First(&idempotency).Error
+	if err == nil {
+		return ErrInvalidIdempotency
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+
 	sort.Slice(*purchasedItems, func(i, j int) bool { return (*purchasedItems)[i].ProductID < (*purchasedItems)[j].ProductID })
 	tx := repo.db.Begin(&sql.TxOptions{
 		Isolation: sql.LevelRepeatableRead,
@@ -162,10 +172,17 @@ func (repo *ProductRepositoryImpl) UpdateProductInventory(ctx context.Context, i
 			tx.Rollback()
 			return ErrInsuffientInventory
 		}
-		if err := tx.Model(&model.Product{}).Where("id = ?", purchasedItem.ProductID).Update("inventory", purchasedItem.Amount).Error; err != nil {
+		if err := tx.Model(&model.Product{}).Where("id = ?", purchasedItem.ProductID).Update("inventory", gorm.Expr("inventory - ?", purchasedItem.Amount)).Error; err != nil {
 			tx.Rollback()
 			return err
 		}
+	}
+
+	if err := tx.Model(&model.Idempotency{}).Create(&model.Idempotency{
+		ID: idempotencyKey,
+	}).WithContext(ctx).Error; err != nil {
+		tx.Rollback()
+		return err
 	}
 	return tx.Commit().Error
 }
