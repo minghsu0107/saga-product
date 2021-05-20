@@ -10,7 +10,8 @@ import (
 // NewDatabaseConnection returns the db connection instance
 func NewDatabaseConnection(config *conf.Config) (*gorm.DB, error) {
 	db, err := gorm.Open(mysql.Open(config.DBConfig.Dsn), &gorm.Config{
-		Logger: config.Logger.DBLogger,
+		Logger:      config.Logger.DBLogger,
+		PrepareStmt: true,
 	})
 	if err != nil {
 		return nil, err
