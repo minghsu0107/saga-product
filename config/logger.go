@@ -20,7 +20,7 @@ type Logger struct {
 	ContextLogger *log.Entry
 }
 
-func newLogger(appName, ginMode string) *Logger {
+func newLogger(app, ginMode string) *Logger {
 	var dbLogLevel dblog.LogLevel
 	var dbLoggerLevel log.Level
 
@@ -41,7 +41,7 @@ func newLogger(appName, ginMode string) *Logger {
 	}
 
 	contextLogger := log.WithFields(log.Fields{
-		"app_name": appName,
+		"app": app,
 	})
 
 	return &Logger{

@@ -10,16 +10,15 @@ import (
 
 // Config is a type for general configuration
 type Config struct {
+	App              string            `yaml:"app" envconfig:"APP"`
+	GinMode          string            `yaml:"ginMode" envconfig:"GIN_MODE"`
 	HTTPPort         string            `yaml:"httpPort" envconfig:"HTTP_PORT"`
 	GRPCPort         string            `yaml:"grpcPort" envconfig:"GRPC_PORT"`
 	PromPort         string            `yaml:"promPort" envconfig:"PROM_PORT"`
 	OcAgentHost      string            `yaml:"ocAgentHost" envconfig:"OC_AGENT_HOST"`
-	AppName          string            `yaml:"appName" envconfig:"APP_NAME"`
-	GinMode          string            `yaml:"ginMode" envconfig:"GIN_MODE"`
 	DBConfig         *DBConfig         `yaml:"dbConfig"`
 	LocalCacheConfig *LocalCacheConfig `yaml:"localCacheConfig"`
 	RedisConfig      *RedisConfig      `yaml:"redisConfig"`
-	Resolver         string            `yaml:"resolver" envconfig:"RESOLVER"`
 	Logger           *Logger
 }
 
@@ -55,7 +54,7 @@ func NewConfig() (*Config, error) {
 	if err := readEnv(&config); err != nil {
 		return nil, err
 	}
-	config.Logger = newLogger(config.AppName, config.GinMode)
+	config.Logger = newLogger(config.App, config.GinMode)
 	log.SetOutput(config.Logger.Writer)
 
 	return &config, nil

@@ -21,7 +21,7 @@ import (
 
 // Injectors from wire.go:
 
-func InitializeServer() (*infra.Server, error) {
+func InitializeProductServer() (*infra.Server, error) {
 	configConfig, err := config.NewConfig()
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func InitializeServer() (*infra.Server, error) {
 	return infraServer, nil
 }
 
-func InitializeMigrator() (*db.Migrator, error) {
+func InitializeMigrator(app string) (*db.Migrator, error) {
 	configConfig, err := config.NewConfig()
 	if err != nil {
 		return nil, err
@@ -68,6 +68,6 @@ func InitializeMigrator() (*db.Migrator, error) {
 	if err != nil {
 		return nil, err
 	}
-	migrator := db.NewMigrator(gormDB)
+	migrator := db.NewMigrator(gormDB, app)
 	return migrator, nil
 }

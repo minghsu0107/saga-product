@@ -9,9 +9,9 @@ all: test build
 
 test: runtest
 build: dep
-	$(GOBUILD) -o server -v ./cmd/main.go
+	$(GOBUILD) -o server -v ./main.go
 build-linux: dep
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o server -v ./cmd/main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o server -v ./main.go
 
 runtest:
 	$(GOTEST) -v ./...

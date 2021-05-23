@@ -19,7 +19,7 @@ import (
 	"github.com/minghsu0107/saga-product/pkg"
 )
 
-func InitializeServer() (*infra.Server, error) {
+func InitializeProductServer() (*infra.Server, error) {
 	wire.Build(
 		conf.NewConfig,
 
@@ -50,7 +50,7 @@ func InitializeServer() (*infra.Server, error) {
 	return &infra.Server{}, nil
 }
 
-func InitializeMigrator() (*db.Migrator, error) {
+func InitializeMigrator(app string) (*db.Migrator, error) {
 	wire.Build(
 		conf.NewConfig,
 		db.NewDatabaseConnection,

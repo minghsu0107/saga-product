@@ -15,22 +15,22 @@ import (
 type ObservibilityInjector struct {
 	promPort    string
 	ocagentHost string
-	appName     string
+	app         string
 }
 
 func NewObservibilityInjector(config *conf.Config) (*ObservibilityInjector, error) {
 	promPort := config.PromPort
 	ocagentHost := config.OcAgentHost
-	appName := config.AppName
+	app := config.App
 
-	if appName == "" {
+	if app == "" {
 		return nil, fmt.Errorf("app name should not be empty")
 	}
 
 	return &ObservibilityInjector{
 		promPort:    promPort,
 		ocagentHost: ocagentHost,
-		appName:     appName,
+		app:         app,
 	}, nil
 }
 
@@ -40,7 +40,7 @@ func (injector *ObservibilityInjector) Register(errs chan error) {
 			ocagent.WithInsecure(),
 			ocagent.WithReconnectionPeriod(5*time.Second),
 			ocagent.WithAddress(injector.ocagentHost),
-			ocagent.WithServiceName(injector.appName))
+			ocagent.WithServiceName(injector.app))
 		if err != nil {
 			log.Fatalf("failed to create ocagent-exporter: %v", err)
 		}

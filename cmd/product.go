@@ -1,4 +1,4 @@
-package main
+package product
 
 import (
 	"context"
@@ -12,10 +12,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func main() {
+func RunProductServer(app string) {
 	errs := make(chan error, 1)
 
-	migrator, err := dep.InitializeMigrator()
+	migrator, err := dep.InitializeMigrator(app)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -23,7 +23,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	server, err := dep.InitializeServer()
+	server, err := dep.InitializeProductServer()
 	if err != nil {
 		log.Fatal(err)
 	}

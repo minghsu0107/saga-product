@@ -23,11 +23,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var (
-	// KubernetesResolver name
-	KubernetesResolver string = "kubernetes"
-)
-
 // Server is the grpc server type
 type Server struct {
 	Port           string

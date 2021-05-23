@@ -27,7 +27,7 @@ func InitDB() {
 		Logger: &conf.Logger{
 			Writer: writer,
 			ContextLogger: log.WithFields(log.Fields{
-				"app_name": "test",
+				"app": "test",
 			}),
 			DBLogger: dblog.New(
 				&log.Logger{
