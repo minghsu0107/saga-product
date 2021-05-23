@@ -15,6 +15,7 @@ import (
 	"github.com/minghsu0107/saga-product/infra/db"
 	infra_grpc "github.com/minghsu0107/saga-product/infra/grpc"
 	infra_http "github.com/minghsu0107/saga-product/infra/http"
+	infra_observe "github.com/minghsu0107/saga-product/infra/observe"
 	"github.com/minghsu0107/saga-product/pkg"
 )
 
@@ -28,6 +29,8 @@ func InitializeServer() (*infra.Server, error) {
 		infra_http.NewRouter,
 
 		infra_grpc.NewGRPCServer,
+
+		infra_observe.NewObservibilityInjector,
 
 		db.NewDatabaseConnection,
 

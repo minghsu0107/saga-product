@@ -12,6 +12,8 @@ import (
 type Config struct {
 	HTTPPort         string            `yaml:"httpPort" envconfig:"HTTP_PORT"`
 	GRPCPort         string            `yaml:"grpcPort" envconfig:"GRPC_PORT"`
+	PromPort         string            `yaml:"promPort" envconfig:"PROM_PORT"`
+	OcAgentHost      string            `yaml:"ocAgentHost" envconfig:"OC_AGENT_HOST"`
 	AppName          string            `yaml:"appName" envconfig:"APP_NAME"`
 	GinMode          string            `yaml:"ginMode" envconfig:"GIN_MODE"`
 	DBConfig         *DBConfig         `yaml:"dbConfig"`

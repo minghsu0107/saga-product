@@ -1,0 +1,4 @@
+#!/bin/bash
+make mockgen
+go mod tidy
+git add .

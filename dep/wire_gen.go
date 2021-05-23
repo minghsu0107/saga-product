@@ -12,6 +12,7 @@ import (
 	"github.com/minghsu0107/saga-product/infra/db"
 	"github.com/minghsu0107/saga-product/infra/grpc"
 	"github.com/minghsu0107/saga-product/infra/http"
+	pkg2 "github.com/minghsu0107/saga-product/infra/observe"
 	"github.com/minghsu0107/saga-product/pkg"
 	"github.com/minghsu0107/saga-product/repo"
 	"github.com/minghsu0107/saga-product/repo/proxy"
@@ -50,7 +51,11 @@ func InitializeServer() (*infra.Server, error) {
 	router := http.NewRouter(productService, sagaProductService)
 	server := http.NewServer(configConfig, engine, router)
 	grpcServer := grpc.NewGRPCServer(configConfig, productService, sagaProductService)
-	infraServer := infra.NewServer(server, grpcServer)
+	observibilityInjector, err := pkg2.NewObservibilityInjector(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	infraServer := infra.NewServer(server, grpcServer, observibilityInjector)
 	return infraServer, nil
 }
 

@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"net"
-	"os"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -59,7 +58,7 @@ func NewGRPCServer(config *config.Config, productSvc product.ProductService, sag
 			Timeout:               1 * time.Second,   // wait 1 second for the ping ack before assuming the connection is dead
 		}),
 	}
-	if os.Getenv("OC_AGENT_HOST") != "" {
+	if config.OcAgentHost != "" {
 		opts = append(opts, grpc.StatsHandler(&ocgrpc.ServerHandler{}))
 	}
 
@@ -97,6 +96,7 @@ func NewGRPCServer(config *config.Config, productSvc product.ProductService, sag
 	pb.RegisterProductServiceServer(srv.s, srv)
 	pb.RegisterSagaProductServiceServer(srv.s, srv)
 
+	grpc_prometheus.Register(srv.s)
 	reflection.Register(srv.s)
 	return srv
 }

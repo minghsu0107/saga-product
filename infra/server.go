@@ -5,25 +5,29 @@ import (
 
 	infra_grpc "github.com/minghsu0107/saga-product/infra/grpc"
 	infra_http "github.com/minghsu0107/saga-product/infra/http"
+	infra_observe "github.com/minghsu0107/saga-product/infra/observe"
 	log "github.com/sirupsen/logrus"
 )
 
 // Server wraps http and grpc server
 type Server struct {
-	HTTPServer *infra_http.Server
-	GRPCServer *infra_grpc.Server
+	HTTPServer  *infra_http.Server
+	GRPCServer  *infra_grpc.Server
+	ObsInjector *infra_observe.ObservibilityInjector
 }
 
-func NewServer(httpServer *infra_http.Server, grpcServer *infra_grpc.Server) *Server {
+func NewServer(httpServer *infra_http.Server, grpcServer *infra_grpc.Server, obsInjector *infra_observe.ObservibilityInjector) *Server {
 	return &Server{
-		HTTPServer: httpServer,
-		GRPCServer: grpcServer,
+		HTTPServer:  httpServer,
+		GRPCServer:  grpcServer,
+		ObsInjector: obsInjector,
 	}
 }
 
 // Run server
 func (s *Server) Run() error {
 	errs := make(chan error, 1)
+	s.ObsInjector.Register(errs)
 	go func() {
 		errs <- s.HTTPServer.Run()
 	}()
