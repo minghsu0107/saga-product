@@ -1,11 +1,11 @@
-app: "" # should be overrided
+app: PLACEHOLDER # should be overrided
 ginMode: "debug"
 httpPort: 80
 grpcPort: 8000
 promPort: 8080
 ocAgentHost: ""
 dbConfig:
-  dsn: root:password@tcp(127.0.0.1:3306)/account?charset=utf8mb4&parseTime=True&loc=Local
+  dsn: root:password@tcp(127.0.0.1:3306)/PLACEHOLDER?charset=utf8mb4&parseTime=True&loc=Local
   maxIdleConns: 3
   maxOpenConns: 10
 localCacheConfig:
