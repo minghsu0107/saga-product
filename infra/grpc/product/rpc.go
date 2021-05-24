@@ -1,4 +1,4 @@
-package grpc
+package product
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (srv *Server) CheckProducts(ctx context.Context, req *pb.CheckProductsRequest) (*pb.CheckProductsResponse, error) {
+func (srv *ProductServer) CheckProducts(ctx context.Context, req *pb.CheckProductsRequest) (*pb.CheckProductsResponse, error) {
 	var cartItems []model.CartItem
 	pbCartItems := req.CartItems
 	for _, pbCartItem := range pbCartItems {
@@ -43,7 +43,7 @@ func (srv *Server) CheckProducts(ctx context.Context, req *pb.CheckProductsReque
 	}, nil
 }
 
-func (srv *Server) GetProducts(ctx context.Context, req *pb.GetProductsRequest) (*pb.Products, error) {
+func (srv *ProductServer) GetProducts(ctx context.Context, req *pb.GetProductsRequest) (*pb.Products, error) {
 	productIDs := req.ProductId
 	products, err := srv.productSvc.GetProducts(ctx, productIDs)
 	if err != nil {
@@ -68,7 +68,7 @@ func (srv *Server) GetProducts(ctx context.Context, req *pb.GetProductsRequest) 
 	}, nil
 }
 
-func (srv *Server) UpdateProductInventory(ctx context.Context, req *pb.UpdateProductInventoryCmd) (*pb.GeneralResponse, error) {
+func (srv *ProductServer) UpdateProductInventory(ctx context.Context, req *pb.UpdateProductInventoryCmd) (*pb.GeneralResponse, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok || len(md.Get(config.IdempotencyKeyHeader)) == 0 {
 		return nil, status.Error(codes.Internal, "error parsing metadata")
@@ -105,7 +105,7 @@ func (srv *Server) UpdateProductInventory(ctx context.Context, req *pb.UpdatePro
 	}, nil
 }
 
-func (srv *Server) RollbackProductInventory(ctx context.Context, req *pb.RollbackProductInventoryCmd) (*pb.GeneralResponse, error) {
+func (srv *ProductServer) RollbackProductInventory(ctx context.Context, req *pb.RollbackProductInventoryCmd) (*pb.GeneralResponse, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok || len(md.Get(config.IdempotencyKeyHeader)) == 0 {
 		return nil, status.Error(codes.Internal, "error parsing metadata")

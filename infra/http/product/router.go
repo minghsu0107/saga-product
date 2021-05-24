@@ -1,4 +1,4 @@
-package http
+package product
 
 import (
 	"net/http"
@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/minghsu0107/saga-product/domain/model"
-	"github.com/minghsu0107/saga-product/infra/http/presenter"
+	"github.com/minghsu0107/saga-product/infra/http/product/presenter"
 	"github.com/minghsu0107/saga-product/service/product"
 )
 

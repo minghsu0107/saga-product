@@ -11,12 +11,12 @@ import (
 
 // Server wraps http and grpc server
 type Server struct {
-	HTTPServer  *infra_http.Server
-	GRPCServer  *infra_grpc.Server
+	HTTPServer  infra_http.Server
+	GRPCServer  infra_grpc.Server
 	ObsInjector *infra_observe.ObservibilityInjector
 }
 
-func NewServer(httpServer *infra_http.Server, grpcServer *infra_grpc.Server, obsInjector *infra_observe.ObservibilityInjector) *Server {
+func NewServer(httpServer infra_http.Server, grpcServer infra_grpc.Server, obsInjector *infra_observe.ObservibilityInjector) *Server {
 	return &Server{
 		HTTPServer:  httpServer,
 		GRPCServer:  grpcServer,

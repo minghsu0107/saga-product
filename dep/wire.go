@@ -13,8 +13,8 @@ import (
 	"github.com/minghsu0107/saga-product/infra"
 	"github.com/minghsu0107/saga-product/infra/cache"
 	"github.com/minghsu0107/saga-product/infra/db"
-	infra_grpc "github.com/minghsu0107/saga-product/infra/grpc"
-	infra_http "github.com/minghsu0107/saga-product/infra/http"
+	infra_grpc_product "github.com/minghsu0107/saga-product/infra/grpc/product"
+	infra_http_product "github.com/minghsu0107/saga-product/infra/http/product"
 	infra_observe "github.com/minghsu0107/saga-product/infra/observe"
 	"github.com/minghsu0107/saga-product/pkg"
 )
@@ -24,11 +24,11 @@ func InitializeProductServer() (*infra.Server, error) {
 		conf.NewConfig,
 
 		infra.NewServer,
-		infra_http.NewServer,
-		infra_http.NewEngine,
-		infra_http.NewRouter,
+		infra_http_product.NewProductServer,
+		infra_http_product.NewEngine,
+		infra_http_product.NewRouter,
 
-		infra_grpc.NewGRPCServer,
+		infra_grpc_product.NewProductServer,
 
 		infra_observe.NewObservibilityInjector,
 

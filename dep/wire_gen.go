@@ -10,13 +10,13 @@ import (
 	"github.com/minghsu0107/saga-product/infra"
 	"github.com/minghsu0107/saga-product/infra/cache"
 	"github.com/minghsu0107/saga-product/infra/db"
-	"github.com/minghsu0107/saga-product/infra/grpc"
-	"github.com/minghsu0107/saga-product/infra/http"
+	product3 "github.com/minghsu0107/saga-product/infra/grpc/product"
+	"github.com/minghsu0107/saga-product/infra/http/product"
 	pkg2 "github.com/minghsu0107/saga-product/infra/observe"
 	"github.com/minghsu0107/saga-product/pkg"
 	"github.com/minghsu0107/saga-product/repo"
 	"github.com/minghsu0107/saga-product/repo/proxy"
-	"github.com/minghsu0107/saga-product/service/product"
+	product2 "github.com/minghsu0107/saga-product/service/product"
 )
 
 // Injectors from wire.go:
@@ -26,7 +26,7 @@ func InitializeProductServer() (*infra.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	engine := http.NewEngine(configConfig)
+	engine := product.NewEngine(configConfig)
 	gormDB, err := db.NewDatabaseConnection(configConfig)
 	if err != nil {
 		return nil, err
@@ -46,11 +46,11 @@ func InitializeProductServer() (*infra.Server, error) {
 	}
 	redisCache := cache.NewRedisCache(configConfig, clusterClient)
 	productRepoCache := proxy.NewProductRepoCache(configConfig, productRepository, localCache, redisCache)
-	productService := product.NewProductService(configConfig, productRepoCache)
-	sagaProductService := product.NewSagaProductService(configConfig, productRepoCache)
-	router := http.NewRouter(productService, sagaProductService)
-	server := http.NewServer(configConfig, engine, router)
-	grpcServer := grpc.NewGRPCServer(configConfig, productService, sagaProductService)
+	productService := product2.NewProductService(configConfig, productRepoCache)
+	sagaProductService := product2.NewSagaProductService(configConfig, productRepoCache)
+	router := product.NewRouter(productService, sagaProductService)
+	server := product.NewProductServer(configConfig, engine, router)
+	grpcServer := product3.NewProductServer(configConfig, productService, sagaProductService)
 	observibilityInjector, err := pkg2.NewObservibilityInjector(configConfig)
 	if err != nil {
 		return nil, err
