@@ -152,6 +152,18 @@ var _ = Describe("test repo", func() {
 				err := productRepo.UpdateProductInventory(context.Background(), idempotencyKey, &purchasedItems)
 				Expect(err).To(Equal(ErrInvalidIdempotency))
 			})
+			var _ = It("should rollback if inventory is not enough", func() {
+				idempotencyKey = 2
+				for _, cartItem := range cartItems {
+					productID := cartItem.ProductID
+					purchasedItems = append(purchasedItems, domain_model.PurchasedItem{
+						ProductID: productID,
+						Amount:    1000,
+					})
+				}
+				err := productRepo.UpdateProductInventory(context.Background(), idempotencyKey, &purchasedItems)
+				Expect(err).To(Equal(ErrInsuffientInventory))
+			})
 		})
 	})
 })
