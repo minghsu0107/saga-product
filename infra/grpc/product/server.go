@@ -32,7 +32,6 @@ func NewProductServer(config *config.Config, productSvc product.ProductService, 
 
 	srv.s = infra_grpc.Initialize(config.OcAgentHost, config.Logger.ContextLogger)
 	pb.RegisterProductServiceServer(srv.s, srv)
-	pb.RegisterSagaProductServiceServer(srv.s, srv)
 
 	grpc_prometheus.Register(srv.s)
 	reflection.Register(srv.s)

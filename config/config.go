@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 
+	"github.com/ThreeDotsLabs/watermill"
 	"github.com/kelseyhightower/envconfig"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -19,6 +20,7 @@ type Config struct {
 	DBConfig         *DBConfig         `yaml:"dbConfig"`
 	LocalCacheConfig *LocalCacheConfig `yaml:"localCacheConfig"`
 	RedisConfig      *RedisConfig      `yaml:"redisConfig"`
+	NATS             *NATS             `yaml:"nats"`
 	Logger           *Logger
 }
 
@@ -45,6 +47,16 @@ type RedisConfig struct {
 	IdleTimeoutSeconds int64  `yaml:"idleTimeoutSeconds" envconfig:"REDIS_IDLE_TIMEOUT_SECONDS"`
 }
 
+// NATS wraps NATS client configurations
+type NATS struct {
+	ClusterID       string `yaml:"clusterID" envconfig:"NATS_CLUSTER_ID"`
+	URL             string `yaml:"url" envconfig:"NATS_URL"`
+	ClientID        string `yaml:"clientID" envconfig:"NATS_CLIENT_ID"`
+	QueueGroup      string `yaml:"queueGroup" envconfig:"NATS_QUEUE_GROUP"`
+	DurableName     string `yaml:"durableName" envconfig:"NATS_DURABLE_NAME"`
+	SubscriberCount int    `yaml:"subscriberCount" envconfig:"NATS_SUBSCRIBER_COUNT"`
+}
+
 // NewConfig is the factory of Config instance
 func NewConfig() (*Config, error) {
 	var config Config
@@ -53,6 +65,9 @@ func NewConfig() (*Config, error) {
 	}
 	if err := readEnv(&config); err != nil {
 		return nil, err
+	}
+	if config.NATS.ClientID == "" {
+		config.NATS.ClientID = watermill.NewShortUUID()
 	}
 	config.Logger = newLogger(config.App, config.GinMode)
 	log.SetOutput(config.Logger.Writer)

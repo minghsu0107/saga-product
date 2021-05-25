@@ -9,7 +9,7 @@ import (
 
 // OrchestratorService interface
 type OrchestratorService interface {
-	StartSaga(ctx context.Context, payload *model.OrchestratorPayload)
+	PlaySaga(ctx context.Context, payload *model.OrchestratorPayload)
 	UpdateProductInventory(ctx context.Context, idempotencyKey uint64, purchasedItems *[]model.PurchasedItem) error
 	RollbackProductInventory(ctx context.Context, idempotencyKey uint64) error
 

@@ -8,6 +8,8 @@ package dep
 import (
 	"github.com/minghsu0107/saga-product/config"
 	"github.com/minghsu0107/saga-product/infra"
+	"github.com/minghsu0107/saga-product/infra/broker"
+	product4 "github.com/minghsu0107/saga-product/infra/broker/product"
 	"github.com/minghsu0107/saga-product/infra/cache"
 	"github.com/minghsu0107/saga-product/infra/db"
 	product3 "github.com/minghsu0107/saga-product/infra/grpc/product"
@@ -51,11 +53,23 @@ func InitializeProductServer() (*infra.Server, error) {
 	router := product.NewRouter(productService, sagaProductService)
 	server := product.NewProductServer(configConfig, engine, router)
 	grpcServer := product3.NewProductServer(configConfig, productService, sagaProductService)
+	subscriber, err := broker.NewNATSSubscriber(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	publisher, err := broker.NewNATSPublisher(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	eventRouter, err := product4.NewProductEventRouter(configConfig, sagaProductService, subscriber, publisher)
+	if err != nil {
+		return nil, err
+	}
 	observibilityInjector, err := pkg2.NewObservibilityInjector(configConfig)
 	if err != nil {
 		return nil, err
 	}
-	infraServer := infra.NewServer(server, grpcServer, observibilityInjector)
+	infraServer := infra.NewServer(server, grpcServer, eventRouter, observibilityInjector)
 	return infraServer, nil
 }
 

@@ -3,6 +3,7 @@ package infra
 import (
 	"context"
 
+	infra_broker "github.com/minghsu0107/saga-product/infra/broker"
 	infra_grpc "github.com/minghsu0107/saga-product/infra/grpc"
 	infra_http "github.com/minghsu0107/saga-product/infra/http"
 	infra_observe "github.com/minghsu0107/saga-product/infra/observe"
@@ -13,13 +14,15 @@ import (
 type Server struct {
 	HTTPServer  infra_http.Server
 	GRPCServer  infra_grpc.Server
+	EventRouter infra_broker.EventRouter
 	ObsInjector *infra_observe.ObservibilityInjector
 }
 
-func NewServer(httpServer infra_http.Server, grpcServer infra_grpc.Server, obsInjector *infra_observe.ObservibilityInjector) *Server {
+func NewServer(httpServer infra_http.Server, grpcServer infra_grpc.Server, eventRouter infra_broker.EventRouter, obsInjector *infra_observe.ObservibilityInjector) *Server {
 	return &Server{
 		HTTPServer:  httpServer,
 		GRPCServer:  grpcServer,
+		EventRouter: eventRouter,
 		ObsInjector: obsInjector,
 	}
 }
@@ -33,6 +36,9 @@ func (s *Server) Run() error {
 	}()
 	go func() {
 		errs <- s.GRPCServer.Run()
+	}()
+	go func() {
+		errs <- s.EventRouter.Run()
 	}()
 	err := <-errs
 	if err != nil {
@@ -49,6 +55,9 @@ func (s *Server) GracefulStop(ctx context.Context, done chan bool) {
 	}()
 	go func() {
 		s.GRPCServer.GracefulStop()
+	}()
+	go func() {
+		errs <- s.EventRouter.GracefulStop()
 	}()
 	err := <-errs
 	if err != nil {

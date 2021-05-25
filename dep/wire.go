@@ -11,6 +11,8 @@ import (
 	"github.com/minghsu0107/saga-product/service/product"
 
 	"github.com/minghsu0107/saga-product/infra"
+	"github.com/minghsu0107/saga-product/infra/broker"
+	infra_broker_product "github.com/minghsu0107/saga-product/infra/broker/product"
 	"github.com/minghsu0107/saga-product/infra/cache"
 	"github.com/minghsu0107/saga-product/infra/db"
 	infra_grpc_product "github.com/minghsu0107/saga-product/infra/grpc/product"
@@ -30,9 +32,14 @@ func InitializeProductServer() (*infra.Server, error) {
 
 		infra_grpc_product.NewProductServer,
 
+		infra_broker_product.NewProductEventRouter,
+
 		infra_observe.NewObservibilityInjector,
 
 		db.NewDatabaseConnection,
+
+		broker.NewNATSPublisher,
+		broker.NewNATSSubscriber,
 
 		cache.NewLocalCache,
 		cache.NewRedisClient,

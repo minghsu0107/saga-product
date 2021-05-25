@@ -16,6 +16,6 @@ func main() {
 	case "product":
 		cmd.RunProductServer(app)
 	default:
-		log.Fatal("invalid app name. Should be one of 'product', 'order', or 'payment'")
+		log.Fatalf("invalid app name: %s. Should be one of 'product', 'order', 'payment', or 'orchestrator'", app)
 	}
 }

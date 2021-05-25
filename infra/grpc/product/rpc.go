@@ -3,15 +3,10 @@ package product
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"time"
 
-	"github.com/golang/protobuf/ptypes/timestamp"
 	pb "github.com/minghsu0107/saga-pb"
-	"github.com/minghsu0107/saga-product/config"
 	"github.com/minghsu0107/saga-product/domain/model"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -68,71 +63,6 @@ func (srv *ProductServer) GetProducts(ctx context.Context, req *pb.GetProductsRe
 	}, nil
 }
 
-func (srv *ProductServer) UpdateProductInventory(ctx context.Context, req *pb.UpdateProductInventoryCmd) (*pb.GeneralResponse, error) {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok || len(md.Get(config.IdempotencyKeyHeader)) == 0 {
-		return nil, status.Error(codes.Internal, "error parsing metadata")
-	}
-	idempotencyKey, err := strconv.ParseUint(md.Get(config.IdempotencyKeyHeader)[0], 10, 64)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			fmt.Sprintf("internal error: %v", err),
-		)
-	}
-
-	pbPurchasedItems := req.PurchasedItems
-	var purchasedItems []model.PurchasedItem
-	for _, pbPurchasedItem := range pbPurchasedItems {
-		purchasedItems = append(purchasedItems, model.PurchasedItem{
-			ProductID: pbPurchasedItem.ProductId,
-			Amount:    pbPurchasedItem.Amount,
-		})
-	}
-
-	err = srv.sagaProductSvc.UpdateProductInventory(ctx, idempotencyKey, &purchasedItems)
-	if err != nil {
-		return &pb.GeneralResponse{
-			Success:   false,
-			Error:     err.Error(),
-			Timestamp: time2pbTimestamp(time.Now()),
-		}, nil
-	}
-	return &pb.GeneralResponse{
-		Success:   true,
-		Error:     "",
-		Timestamp: time2pbTimestamp(time.Now()),
-	}, nil
-}
-
-func (srv *ProductServer) RollbackProductInventory(ctx context.Context, req *pb.RollbackProductInventoryCmd) (*pb.GeneralResponse, error) {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok || len(md.Get(config.IdempotencyKeyHeader)) == 0 {
-		return nil, status.Error(codes.Internal, "error parsing metadata")
-	}
-	idempotencyKey, err := strconv.ParseUint(md.Get(config.IdempotencyKeyHeader)[0], 10, 64)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			fmt.Sprintf("internal error: %v", err),
-		)
-	}
-
-	err = srv.sagaProductSvc.RollbackProductInventory(ctx, idempotencyKey)
-	if err != nil {
-		return &pb.GeneralResponse{
-			Success:   false,
-			Error:     err.Error(),
-			Timestamp: time2pbTimestamp(time.Now()),
-		}, nil
-	}
-	return &pb.GeneralResponse{
-		Success:   true,
-		Error:     "",
-		Timestamp: time2pbTimestamp(time.Now()),
-	}, nil
-}
-
 func getPbProductStatus(status model.Status) pb.Status {
 	switch status {
 	case model.ProductOk:
@@ -141,10 +71,4 @@ func getPbProductStatus(status model.Status) pb.Status {
 		return pb.Status_STATUS_NOT_FOUND
 	}
 	return pb.Status_STATUS_NOT_FOUND
-}
-
-func time2pbTimestamp(now time.Time) *timestamp.Timestamp {
-	s := int64(now.Second())
-	n := int32(now.Nanosecond())
-	return &timestamp.Timestamp{Seconds: s, Nanos: n}
 }

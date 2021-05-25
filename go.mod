@@ -4,6 +4,8 @@ go 1.15
 
 require (
 	contrib.go.opencensus.io/exporter/ocagent v0.7.0
+	github.com/ThreeDotsLabs/watermill v1.1.1
+	github.com/ThreeDotsLabs/watermill-nats v1.0.5
 	github.com/allegro/bigcache/v2 v2.2.5 // indirect
 	github.com/allegro/bigcache/v3 v3.0.0
 	github.com/census-instrumentation/opencensus-proto v0.3.0 // indirect
@@ -21,6 +23,7 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/minghsu0107/saga-pb v0.5.2
+	github.com/nats-io/stan.go v0.9.0
 	github.com/onsi/ginkgo v1.15.2
 	github.com/onsi/gomega v1.11.0
 	github.com/prometheus/client_golang v1.10.0

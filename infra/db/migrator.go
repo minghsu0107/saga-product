@@ -26,6 +26,12 @@ func (m *Migrator) Migrate() error {
 	switch m.app {
 	case "product":
 		return m.db.AutoMigrate(&model.Product{}, &model.Idempotency{})
+	case "order":
+		return m.db.AutoMigrate(&model.Order{})
+	case "payment":
+		return m.db.AutoMigrate(&model.Payment{})
+	case "orchestrator":
+		return nil
 	}
 	return fmt.Errorf("invalid app name")
 }
