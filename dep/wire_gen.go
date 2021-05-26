@@ -23,7 +23,7 @@ import (
 
 // Injectors from wire.go:
 
-func InitializeProductServer() (*infra.Server, error) {
+func InitializeProductServer() (*infra.ProductServer, error) {
 	configConfig, err := config.NewConfig()
 	if err != nil {
 		return nil, err
@@ -69,8 +69,8 @@ func InitializeProductServer() (*infra.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	infraServer := infra.NewServer(server, grpcServer, eventRouter, observibilityInjector)
-	return infraServer, nil
+	productServer := infra.NewProductServer(server, grpcServer, eventRouter, observibilityInjector)
+	return productServer, nil
 }
 
 func InitializeMigrator(app string) (*db.Migrator, error) {

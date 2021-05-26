@@ -13,7 +13,7 @@ services:
     MYSQL_USER: ming
     MYSQL_PASSWORD: password
     MYSQL_ROOT_PASSWORD: password
-    MYSQL_DATABASE: product
+    MYSQL_DATABASE: test
   command:
     - mysqld
     - --default-authentication-plugin=mysql_native_password
@@ -45,7 +45,7 @@ steps:
   pull: if-not-exists
   image: golang:1.15.2
   environment:
-    DB_DSN: "ming:password@tcp(mysql:3306)/product?charset=utf8mb4&parseTime=True&loc=Local"
+    DB_DSN: "ming:password@tcp(mysql:3306)/test?charset=utf8mb4&parseTime=True&loc=Local"
   commands:
   - go mod download
   - make test

@@ -21,6 +21,7 @@ type SagaProductHandler struct {
 	svc product.SagaProductService
 }
 
+// UpdateProductInventory handler
 func (h *SagaProductHandler) UpdateProductInventory(msg *message.Message) ([]*message.Message, error) {
 	var cmd pb.UpdateProductInventoryCmd
 	if err := json.Unmarshal(msg.Payload, &cmd); err != nil {
@@ -55,10 +56,13 @@ func (h *SagaProductHandler) UpdateProductInventory(msg *message.Message) ([]*me
 		return nil, err
 	}
 	var replyMsgs []*message.Message
-	replyMsgs = append(replyMsgs, message.NewMessage(watermill.NewUUID(), payload))
+	replyMsg := message.NewMessage(watermill.NewUUID(), payload)
+	replyMsg.Metadata.Set(conf.HandlerHeader, conf.UpdateProductInventoryHandler)
+	replyMsgs = append(replyMsgs, replyMsg)
 	return replyMsgs, nil
 }
 
+// RollbackProductInventory handler
 func (h *SagaProductHandler) RollbackProductInventory(msg *message.Message) ([]*message.Message, error) {
 	var cmd pb.RollbackProductInventoryCmd
 	if err := json.Unmarshal(msg.Payload, &cmd); err != nil {
@@ -85,7 +89,9 @@ func (h *SagaProductHandler) RollbackProductInventory(msg *message.Message) ([]*
 		return nil, err
 	}
 	var replyMsgs []*message.Message
-	replyMsgs = append(replyMsgs, message.NewMessage(watermill.NewUUID(), payload))
+	replyMsg := message.NewMessage(watermill.NewUUID(), payload)
+	replyMsg.Metadata.Set(conf.HandlerHeader, conf.RollbackProductInventoryHandler)
+	replyMsgs = append(replyMsgs, replyMsg)
 	return replyMsgs, nil
 }
 
@@ -99,6 +105,7 @@ type ProductEventRouter struct {
 	productTopic       string
 }
 
+// NewProductEventRouter factory
 func NewProductEventRouter(config *conf.Config, sagaProductSvc product.SagaProductService, subscriber message.Subscriber, publisher message.Publisher) (broker.EventRouter, error) {
 	router, err := broker.InitializeRouter(config.App)
 	if err != nil {
@@ -119,12 +126,12 @@ func NewProductEventRouter(config *conf.Config, sagaProductSvc product.SagaProdu
 
 func (r *ProductEventRouter) RegisterHandlers() {
 	r.router.AddHandler(
-		"sagaproduct_update_product_inventory_handler", // handler name, must be unique
-		r.productTopic, // topic from which we will read events
-		r.subscriber,   // subscriber (which we should subscribe from)
-		r.replyTopic,   // topic to which we will publish events
-		r.publisher,    // publisher (which we should publish to)
-		r.sagaProductHandler.UpdateProductInventory, // how we process the message from subscriber and send to publisher
+		"sagaproduct_update_product_inventory_handler",
+		r.productTopic,
+		r.subscriber,
+		r.replyTopic,
+		r.publisher,
+		r.sagaProductHandler.UpdateProductInventory,
 	)
 	r.router.AddHandler(
 		"sagaproduct_rollback_product_inventory_handler",

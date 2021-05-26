@@ -21,11 +21,11 @@ import (
 	"github.com/minghsu0107/saga-product/pkg"
 )
 
-func InitializeProductServer() (*infra.Server, error) {
+func InitializeProductServer() (*infra.ProductServer, error) {
 	wire.Build(
 		conf.NewConfig,
 
-		infra.NewServer,
+		infra.NewProductServer,
 		infra_http_product.NewProductServer,
 		infra_http_product.NewEngine,
 		infra_http_product.NewRouter,
@@ -54,7 +54,7 @@ func InitializeProductServer() (*infra.Server, error) {
 
 		pkg.NewSonyFlake,
 	)
-	return &infra.Server{}, nil
+	return &infra.ProductServer{}, nil
 }
 
 func InitializeMigrator(app string) (*db.Migrator, error) {
