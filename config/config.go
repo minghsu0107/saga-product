@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"time"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/kelseyhightower/envconfig"
@@ -21,6 +22,8 @@ type Config struct {
 	LocalCacheConfig *LocalCacheConfig `yaml:"localCacheConfig"`
 	RedisConfig      *RedisConfig      `yaml:"redisConfig"`
 	NATS             *NATS             `yaml:"nats"`
+	RPCEndpoints     *RPCEndpoints     `yaml:"rpcEndpoints"`
+	ServiceOptions   *ServiceOptions   `yaml:"serviceOptions"`
 	Logger           *Logger
 }
 
@@ -55,6 +58,19 @@ type NATS struct {
 	QueueGroup      string `yaml:"queueGroup" envconfig:"NATS_QUEUE_GROUP"`
 	DurableName     string `yaml:"durableName" envconfig:"NATS_DURABLE_NAME"`
 	SubscriberCount int    `yaml:"subscriberCount" envconfig:"NATS_SUBSCRIBER_COUNT"`
+}
+
+// RPCEndpoints wraps all rpc server urls
+type RPCEndpoints struct {
+	AuthSvcHost    string `yaml:"authSvcHost" envconfig:"RPC_AUTH_SVC_HOST"`
+	ProductSvcHost string `yaml:"productSvcHost" envconfig:"RPC_PRODUCT_SVC_HOST"`
+}
+
+// ServiceOptions defines options for rpc calls between services
+type ServiceOptions struct {
+	Rps           int `yaml:"rps" envconfig:"SERVICE_OPTIONS_RPS"`
+	TimeoutSecond int `yaml:"timeoutSecond" envconfig:"SERVICE_OPTIONS_TIMEOUT_SECOND"`
+	Timeout       time.Duration
 }
 
 // NewConfig is the factory of Config instance

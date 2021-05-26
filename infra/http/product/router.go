@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/minghsu0107/saga-product/domain/model"
+	common_presenter "github.com/minghsu0107/saga-product/infra/http/presenter"
 	"github.com/minghsu0107/saga-product/infra/http/product/presenter"
 	"github.com/minghsu0107/saga-product/service/product"
 )
@@ -28,7 +29,7 @@ func NewRouter(productSvc product.ProductService, sagaProductSvc product.SagaPro
 func (r *Router) ListProducts(c *gin.Context) {
 	var pagination presenter.Pagination
 	if err := c.ShouldBindQuery(&pagination); err != nil {
-		response(c, http.StatusBadRequest, presenter.ErrInvalidParam)
+		response(c, http.StatusBadRequest, common_presenter.ErrInvalidParam)
 		return
 	}
 	catalogs, err := r.productSvc.ListProducts(c.Request.Context(), pagination.Offset, pagination.Size)
@@ -47,7 +48,7 @@ func (r *Router) ListProducts(c *gin.Context) {
 			Catalogs: productCatalogs,
 		})
 	default:
-		response(c, http.StatusInternalServerError, presenter.ErrServer)
+		response(c, http.StatusInternalServerError, common_presenter.ErrServer)
 		return
 	}
 }
@@ -57,14 +58,14 @@ func (r *Router) GetProduct(c *gin.Context) {
 	id := c.Param("id")
 	productID, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
-		response(c, http.StatusBadRequest, presenter.ErrInvalidParam)
+		response(c, http.StatusBadRequest, common_presenter.ErrInvalidParam)
 		return
 	}
 	products, err := r.productSvc.GetProducts(c.Request.Context(), []uint64{productID})
 	switch err {
 	case nil:
 		if len(*products) != 1 {
-			response(c, http.StatusInternalServerError, presenter.ErrServer)
+			response(c, http.StatusInternalServerError, common_presenter.ErrServer)
 			return
 		}
 		product := (*products)[0]
@@ -77,7 +78,7 @@ func (r *Router) GetProduct(c *gin.Context) {
 			Inventory:   product.Inventory,
 		})
 	default:
-		response(c, http.StatusInternalServerError, presenter.ErrServer)
+		response(c, http.StatusInternalServerError, common_presenter.ErrServer)
 		return
 	}
 }
@@ -86,7 +87,7 @@ func (r *Router) GetProduct(c *gin.Context) {
 func (r *Router) CreateProduct(c *gin.Context) {
 	var product presenter.Product
 	if err := c.ShouldBindJSON(&product); err != nil {
-		response(c, http.StatusBadRequest, presenter.ErrInvalidParam)
+		response(c, http.StatusBadRequest, common_presenter.ErrInvalidParam)
 		return
 	}
 	err := r.productSvc.CreateProduct(c.Request.Context(), &model.Product{
@@ -100,17 +101,17 @@ func (r *Router) CreateProduct(c *gin.Context) {
 	})
 	switch err {
 	case nil:
-		c.JSON(http.StatusCreated, presenter.OkMsg)
+		c.JSON(http.StatusCreated, common_presenter.OkMsg)
 		return
 	default:
-		response(c, http.StatusInternalServerError, presenter.ErrServer)
+		response(c, http.StatusInternalServerError, common_presenter.ErrServer)
 		return
 	}
 }
 
 func response(c *gin.Context, httpCode int, err error) {
 	message := err.Error()
-	c.JSON(httpCode, presenter.ErrResponse{
+	c.JSON(httpCode, common_presenter.ErrResponse{
 		Message: message,
 	})
 }

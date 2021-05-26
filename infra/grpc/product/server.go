@@ -30,7 +30,7 @@ func NewProductServer(config *config.Config, productSvc product.ProductService, 
 		sagaProductSvc: sagaProductSvc,
 	}
 
-	srv.s = infra_grpc.Initialize(config.OcAgentHost, config.Logger.ContextLogger)
+	srv.s = infra_grpc.InitializeServer(config.OcAgentHost, config.Logger.ContextLogger)
 	pb.RegisterProductServiceServer(srv.s, srv)
 
 	grpc_prometheus.Register(srv.s)

@@ -25,3 +25,9 @@ nats:
   queueGroup: "orchestrator-queue"
   durableName: "purchase-svc-durable"
   subscriberCount: 3
+rpcEndpoints:
+  authSvcHost: ""
+  productSvcHost: ""
+serviceOptions:
+  rps: 1000
+  timeoutSecond: 10

@@ -10,6 +10,7 @@ require (
 	github.com/allegro/bigcache/v3 v3.0.0
 	github.com/census-instrumentation/opencensus-proto v0.3.0 // indirect
 	github.com/gin-gonic/gin v1.7.1
+	github.com/go-kit/kit v0.10.0
 	github.com/go-redis/redis/v8 v8.8.2
 	github.com/go-redsync/redsync/v4 v4.3.0
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
@@ -30,6 +31,7 @@ require (
 	github.com/prometheus/common v0.20.0 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	github.com/slok/go-http-metrics v0.9.0
+	github.com/sony/gobreaker v0.4.1
 	github.com/sony/sonyflake v1.0.0
 	github.com/stretchr/objx v0.3.0 // indirect
 	github.com/ugorji/go v1.2.5 // indirect
@@ -37,6 +39,7 @@ require (
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2 // indirect
 	golang.org/x/net v0.0.0-20210525063256-abc453219eb5 // indirect
 	golang.org/x/sys v0.0.0-20210525143221-35b2ab0089ea // indirect
+	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
 	google.golang.org/api v0.41.0 // indirect
 	google.golang.org/genproto v0.0.0-20210524171403-669157292da3 // indirect
 	google.golang.org/grpc v1.38.0

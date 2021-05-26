@@ -1,6 +1,8 @@
 package grpc
 
 import (
+	"context"
+	"fmt"
 	"time"
 
 	"go.opencensus.io/plugin/ocgrpc"
@@ -8,6 +10,7 @@ import (
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	log "github.com/sirupsen/logrus"
@@ -17,7 +20,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func Initialize(ocAgentHost string, logrusEntry *log.Entry) *grpc.Server {
+func InitializeServer(ocAgentHost string, logrusEntry *log.Entry) *grpc.Server {
 	opts := []grpc.ServerOption{
 		grpc.MaxRecvMsgSize(1024 * 1024 * 8), // increase to 8 MB (default: 4 MB)
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
@@ -66,4 +69,50 @@ func Initialize(ocAgentHost string, logrusEntry *log.Entry) *grpc.Server {
 		)),
 	)
 	return grpc.NewServer(opts...)
+}
+
+func InitializeClient(svcHost, ocAgentHost string) (*grpc.ClientConn, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	scheme := "dns"
+
+	retryOpts := []grpc_retry.CallOption{
+		// generate waits between 900ms to 1100ms
+		grpc_retry.WithBackoff(grpc_retry.BackoffLinearWithJitter(1*time.Second, 0.1)),
+		grpc_retry.WithCodes(codes.NotFound, codes.Aborted),
+	}
+
+	dialOpts := []grpc.DialOption{
+		grpc.WithInsecure(),
+	}
+
+	if ocAgentHost != "" {
+		dialOpts = append(dialOpts, grpc.WithStatsHandler(new(ocgrpc.ClientHandler)))
+	}
+
+	dialOpts = append(dialOpts,
+		grpc.WithDisableServiceConfig(),
+		grpc.WithDefaultServiceConfig(`{
+			"loadBalancingPolicy": "round_robin"
+		}`),
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time:                10 * time.Second, // send pings every 10 seconds if there is no activity
+			Timeout:             time.Second,      // wait 1 second for ping ack before considering the connection dead
+			PermitWithoutStream: true,             // send pings even without active streams
+		}),
+		grpc.WithStreamInterceptor(grpc_retry.StreamClientInterceptor(retryOpts...)),
+		grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...)),
+		//grpc.WithBlock(),
+	)
+
+	conn, err := grpc.DialContext(
+		ctx,
+		fmt.Sprintf("%s:///%s", scheme, svcHost),
+		dialOpts...,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return conn, nil
 }

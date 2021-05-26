@@ -9,7 +9,8 @@ import (
 // OrderRepoCache interface
 type OrderRepoCache interface {
 	GetOrder(ctx context.Context, orderID uint64) (*domain_model.Order, error)
-	ExistOrder(ctx context.Context, orderID uint64) bool
+	GetDetailedPurchasedItems(ctx context.Context, productIDs *[]uint64) (*[]domain_model.DetailedPurchasedItem, error)
+	ExistOrder(ctx context.Context, orderID uint64) (bool, error)
 	CreateOrder(ctx context.Context, order *domain_model.Order) error
 	DeleteOrder(ctx context.Context, orderID uint64) error
 }
