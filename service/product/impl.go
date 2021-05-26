@@ -21,7 +21,7 @@ func NewProductService(config *conf.Config, productRepo proxy.ProductRepoCache) 
 	return &ProductServiceImpl{
 		productRepo: productRepo,
 		logger: config.Logger.ContextLogger.WithFields(log.Fields{
-			"type": "service:CustomerService",
+			"type": "service:ProductService",
 		}),
 	}
 }

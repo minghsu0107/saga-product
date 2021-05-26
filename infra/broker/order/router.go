@@ -9,7 +9,6 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	pb "github.com/minghsu0107/saga-pb"
 	conf "github.com/minghsu0107/saga-product/config"
-	"github.com/minghsu0107/saga-product/domain/model"
 	"github.com/minghsu0107/saga-product/infra/broker"
 	"github.com/minghsu0107/saga-product/pkg"
 	"github.com/minghsu0107/saga-product/service/order"
@@ -22,24 +21,15 @@ type SagaOrderHandler struct {
 
 // CreateOrder handler
 func (h *SagaOrderHandler) CreateOrder(msg *message.Message) ([]*message.Message, error) {
-	var cmd pb.CreateOrderCmd
-	if err := json.Unmarshal(msg.Payload, &cmd); err != nil {
+	purchase, pbPurchase, err := broker.DecodeCreatePurchaseCmd(msg.Payload)
+	if err != nil {
 		return nil, err
 	}
-	var purchasedItems []model.PurchasedItem
-	for _, pbPurchasedItem := range cmd.Order.PurchasedItems {
-		purchasedItems = append(purchasedItems, model.PurchasedItem{
-			ProductID: pbPurchasedItem.ProductId,
-			Amount:    pbPurchasedItem.Amount,
-		})
+	reply := pb.CreatePurchaseResponse{
+		PurchaseId: purchase.ID,
+		Purchase:   pbPurchase,
 	}
-	order := model.Order{
-		ID:             cmd.OrderId,
-		CustomerID:     cmd.Order.CustomerId,
-		PurchasedItems: &purchasedItems,
-	}
-	var reply pb.GeneralResponse
-	err := h.svc.CreateOrder(context.Background(), &order)
+	err = h.svc.CreateOrder(context.Background(), purchase.Order)
 	if err != nil {
 		reply.Success = false
 		reply.Error = err.Error()
@@ -61,13 +51,16 @@ func (h *SagaOrderHandler) CreateOrder(msg *message.Message) ([]*message.Message
 }
 
 func (h *SagaOrderHandler) RollbackOrder(msg *message.Message) ([]*message.Message, error) {
-	var cmd pb.RollbackOrderCmd
+	var cmd pb.RollbackCmd
 	if err := json.Unmarshal(msg.Payload, &cmd); err != nil {
 		return nil, err
 	}
 
-	var reply pb.GeneralResponse
-	err := h.svc.RollbackOrder(context.Background(), cmd.OrderId)
+	reply := pb.RollbackResponse{
+		CustomerId: cmd.CustomerId,
+		PurchaseId: cmd.PurchaseId,
+	}
+	err := h.svc.RollbackOrder(context.Background(), cmd.PurchaseId)
 	if err != nil {
 		reply.Success = false
 		reply.Error = err.Error()
@@ -116,7 +109,7 @@ func NewOrderEventRouter(config *conf.Config, sagaOrderSvc order.SagaOrderServic
 func (r *OrderEventRouter) RegisterHandlers() {
 	r.router.AddHandler(
 		"sagaorder_create_order_handler",
-		conf.OrderTopic,
+		conf.CreateOrderTopic,
 		r.subscriber,
 		conf.ReplyTopic,
 		r.publisher,
@@ -124,7 +117,7 @@ func (r *OrderEventRouter) RegisterHandlers() {
 	)
 	r.router.AddHandler(
 		"sagaorder_rollback_order_handler",
-		conf.OrderTopic,
+		conf.RollbackOrderTopic,
 		r.subscriber,
 		conf.ReplyTopic,
 		r.publisher,

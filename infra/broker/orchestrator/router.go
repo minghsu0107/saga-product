@@ -2,28 +2,32 @@ package orchestrator
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	pb "github.com/minghsu0107/saga-pb"
+	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 	conf "github.com/minghsu0107/saga-product/config"
-	"github.com/minghsu0107/saga-product/domain/model"
 	"github.com/minghsu0107/saga-product/infra/broker"
 	"github.com/minghsu0107/saga-product/service/orchestrator"
 )
 
 // OrchestratorHandler handler
 type OrchestratorHandler struct {
-	svc        orchestrator.OrchestratorService
-	subscriber message.Subscriber
+	svc orchestrator.OrchestratorService
 }
 
-func (h *OrchestratorHandler) HandlePurchase(msg *message.Message) error {
-	var cmd pb.CreatePurchase
-	if err := json.Unmarshal(msg.Payload, &cmd); err != nil {
+// StartTransaction starts the transaction
+func (h *OrchestratorHandler) StartTransaction(msg *message.Message) error {
+	purchase, _, err := broker.DecodeCreatePurchaseCmd(msg.Payload)
+	if err != nil {
 		return err
 	}
-	return h.svc.PlaySaga(context.Background(), createPurchaseCmd2domainPurchase(&cmd), h.subscriber)
+	correlationID := msg.Metadata.Get(middleware.CorrelationIDMetadataKey)
+	return h.svc.StartTransaction(context.Background(), purchase, correlationID)
+}
+
+func (h *OrchestratorHandler) HandleReply(msg *message.Message) error {
+	correlationID := msg.Metadata.Get(middleware.CorrelationIDMetadataKey)
+	return h.svc.HandleReply(context.Background(), msg, correlationID)
 }
 
 // OrchestratorEventRouter implementation
@@ -34,14 +38,13 @@ type OrchestratorEventRouter struct {
 }
 
 // NewOrchestratorEventRouter factory
-func NewOrchestratorEventRouter(config *conf.Config, orchestratorSvc orchestrator.OrchestratorService, subscriber message.Subscriber, publisher message.Publisher) (broker.EventRouter, error) {
+func NewOrchestratorEventRouter(config *conf.Config, orchestratorSvc orchestrator.OrchestratorService, subscriber message.Subscriber) (broker.EventRouter, error) {
 	router, err := broker.InitializeRouter(config.App)
 	if err != nil {
 		return nil, err
 	}
 	orchestratorHandler := OrchestratorHandler{
-		svc:        orchestratorSvc,
-		subscriber: subscriber,
+		svc: orchestratorSvc,
 	}
 	return &OrchestratorEventRouter{
 		router:              router,
@@ -52,10 +55,16 @@ func NewOrchestratorEventRouter(config *conf.Config, orchestratorSvc orchestrato
 
 func (r *OrchestratorEventRouter) RegisterHandlers() {
 	r.router.AddNoPublisherHandler(
-		"sagaorchestrator_purchase_handler",
+		"sagaorchestrator_start_transaction_handler",
 		conf.PurchaseTopic,
 		r.subscriber,
-		r.orchestratorHandler.HandlePurchase,
+		r.orchestratorHandler.StartTransaction,
+	)
+	r.router.AddNoPublisherHandler(
+		"sagaorchestrator_handle_reply_handler",
+		conf.ReplyTopic,
+		r.subscriber,
+		r.orchestratorHandler.HandleReply,
 	)
 }
 
@@ -66,28 +75,4 @@ func (r *OrchestratorEventRouter) Run() error {
 
 func (r *OrchestratorEventRouter) GracefulStop() error {
 	return r.router.Close()
-}
-
-func createPurchaseCmd2domainPurchase(cmd *pb.CreatePurchase) *model.Purchase {
-	var amount int64 = 0
-	var purchasedItems []model.PurchasedItem
-	for _, pbPurchasedItem := range cmd.Purchase.Order.PurchasedItems {
-		purchasedItems = append(purchasedItems, model.PurchasedItem{
-			ProductID: pbPurchasedItem.ProductId,
-			Amount:    pbPurchasedItem.Amount,
-		})
-		amount += pbPurchasedItem.Amount
-	}
-	order := model.Order{
-		CustomerID:     cmd.Purchase.Order.CustomerId,
-		PurchasedItems: &purchasedItems,
-	}
-	payment := model.Payment{
-		CurrencyCode: cmd.Purchase.Payment.CurrencyCode,
-		Amount:       amount,
-	}
-	return &model.Purchase{
-		Order:   &order,
-		Payment: &payment,
-	}
 }

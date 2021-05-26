@@ -8,11 +8,11 @@ import (
 
 // PaymentService interface
 type PaymentService interface {
-	GetPayment(ctx context.Context, payment_id uint64) (*model.Payment, error)
+	GetPayment(ctx context.Context, paymentID uint64) (*model.Payment, error)
 }
 
 // SagaPaymentService interface
 type SagaPaymentService interface {
 	CreatePayment(ctx context.Context, payment *model.Payment) error
-	RollbackPayment(ctx context.Context, payment_id uint64) error
+	RollbackPayment(ctx context.Context, paymentID uint64) error
 }

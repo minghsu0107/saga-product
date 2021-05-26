@@ -3,14 +3,13 @@ package product
 import (
 	"context"
 	"encoding/json"
-	"strconv"
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	pb "github.com/minghsu0107/saga-pb"
 	conf "github.com/minghsu0107/saga-product/config"
-	"github.com/minghsu0107/saga-product/domain/model"
+
 	"github.com/minghsu0107/saga-product/infra/broker"
 	"github.com/minghsu0107/saga-product/pkg"
 	"github.com/minghsu0107/saga-product/service/product"
@@ -23,25 +22,15 @@ type SagaProductHandler struct {
 
 // UpdateProductInventory handler
 func (h *SagaProductHandler) UpdateProductInventory(msg *message.Message) ([]*message.Message, error) {
-	var cmd pb.UpdateProductInventoryCmd
-	if err := json.Unmarshal(msg.Payload, &cmd); err != nil {
-		return nil, err
-	}
-	idempotencyKey, err := strconv.ParseUint(msg.Metadata.Get(conf.IdempotencyKeyHeader), 10, 64)
+	purchase, pbPurchase, err := broker.DecodeCreatePurchaseCmd(msg.Payload)
 	if err != nil {
 		return nil, err
 	}
-	pbPurchasedItems := cmd.PurchasedItems
-	var purchasedItems []model.PurchasedItem
-	for _, pbPurchasedItem := range pbPurchasedItems {
-		purchasedItems = append(purchasedItems, model.PurchasedItem{
-			ProductID: pbPurchasedItem.ProductId,
-			Amount:    pbPurchasedItem.Amount,
-		})
+	reply := pb.CreatePurchaseResponse{
+		PurchaseId: purchase.ID,
+		Purchase:   pbPurchase,
 	}
-
-	var reply pb.GeneralResponse
-	err = h.svc.UpdateProductInventory(context.Background(), idempotencyKey, &purchasedItems)
+	err = h.svc.UpdateProductInventory(context.Background(), purchase.ID, purchase.Order.PurchasedItems)
 	if err != nil {
 		reply.Success = false
 		reply.Error = err.Error()
@@ -64,17 +53,16 @@ func (h *SagaProductHandler) UpdateProductInventory(msg *message.Message) ([]*me
 
 // RollbackProductInventory handler
 func (h *SagaProductHandler) RollbackProductInventory(msg *message.Message) ([]*message.Message, error) {
-	var cmd pb.RollbackProductInventoryCmd
+	var cmd pb.RollbackCmd
 	if err := json.Unmarshal(msg.Payload, &cmd); err != nil {
 		return nil, err
 	}
-	idempotencyKey, err := strconv.ParseUint(msg.Metadata.Get(conf.IdempotencyKeyHeader), 10, 64)
-	if err != nil {
-		return nil, err
-	}
 
-	var reply pb.GeneralResponse
-	err = h.svc.RollbackProductInventory(context.Background(), idempotencyKey)
+	reply := pb.RollbackResponse{
+		CustomerId: cmd.CustomerId,
+		PurchaseId: cmd.PurchaseId,
+	}
+	err := h.svc.RollbackProductInventory(context.Background(), cmd.PurchaseId)
 	if err != nil {
 		reply.Success = false
 		reply.Error = err.Error()
@@ -101,8 +89,6 @@ type ProductEventRouter struct {
 	sagaProductHandler *SagaProductHandler
 	subscriber         message.Subscriber
 	publisher          message.Publisher
-	replyTopic         string
-	productTopic       string
 }
 
 // NewProductEventRouter factory
@@ -119,25 +105,23 @@ func NewProductEventRouter(config *conf.Config, sagaProductSvc product.SagaProdu
 		sagaProductHandler: &sagaProductHandler,
 		subscriber:         subscriber,
 		publisher:          publisher,
-		replyTopic:         conf.ReplyTopic,
-		productTopic:       conf.ProductTopic,
 	}, nil
 }
 
 func (r *ProductEventRouter) RegisterHandlers() {
 	r.router.AddHandler(
 		"sagaproduct_update_product_inventory_handler",
-		r.productTopic,
+		conf.UpdateProductInventoryTopic,
 		r.subscriber,
-		r.replyTopic,
+		conf.ReplyTopic,
 		r.publisher,
 		r.sagaProductHandler.UpdateProductInventory,
 	)
 	r.router.AddHandler(
 		"sagaproduct_rollback_product_inventory_handler",
-		r.productTopic,
+		conf.RollbackProductInventoryTopic,
 		r.subscriber,
-		r.replyTopic,
+		conf.ReplyTopic,
 		r.publisher,
 		r.sagaProductHandler.RollbackProductInventory,
 	)

@@ -9,5 +9,6 @@ import (
 
 // OrchestratorService interface
 type OrchestratorService interface {
-	PlaySaga(ctx context.Context, purchase *model.Purchase, subscriber message.Subscriber) error
+	StartTransaction(ctx context.Context, purchase *model.Purchase, correlationID string) error
+	HandleReply(ctx context.Context, msg *message.Message, correlationID string) error
 }

@@ -9,8 +9,6 @@ var (
 	// CustomerKey is the key name for retrieving jwt-decoded customer id in a http request context
 	CustomerKey HTTPContextKey = "customer_key"
 
-	// IdempotencyKeyHeader is the idempotencyKey header in a product event
-	IdempotencyKeyHeader = "Idempotency-Key"
 	// HandlerHeader identifies a handler in the ReplyTopic
 	HandlerHeader = "Handler"
 
@@ -30,14 +28,20 @@ var (
 	// PurchaseTopic is the subscribed topic for new purchase
 	PurchaseTopic = "purchase"
 	// PurchaseResultTopic is the topic to which we publish new purchase result
-	PurchaseResultTopic = "purchase_result"
+	PurchaseResultTopic = "purchase.result"
 
 	// ReplyTopic is saga step reply topic
 	ReplyTopic = "reply"
-	// ProductTopic is publish product topic
-	ProductTopic = "product"
-	// OrderTopic is publish order topic
-	OrderTopic = "order"
-	// PaymentTopic is publish payment topic
-	PaymentTopic = "payment"
+	// UpdateProductInventoryTopic topic
+	UpdateProductInventoryTopic = "product.update.inventory"
+	// RollbackProductInventoryTopic topic
+	RollbackProductInventoryTopic = "product.rollback.inventory"
+	// CreateOrderTopic topic
+	CreateOrderTopic = "order.create"
+	// RollbackOrderTopic topic
+	RollbackOrderTopic = "order.rollback"
+	// CreatePaymentTopic topic
+	CreatePaymentTopic = "payment.create"
+	// RollbackPaymentTopic topic
+	RollbackPaymentTopic = "payment.rollback"
 )

@@ -8,11 +8,11 @@ import (
 
 // OrderService interface
 type OrderService interface {
-	GetOrder(ctx context.Context, order_id uint64) (*model.Order, error)
+	GetOrder(ctx context.Context, orderID uint64) (*model.Order, error)
 }
 
 // SagaOrderService interface
 type SagaOrderService interface {
 	CreateOrder(ctx context.Context, order *model.Order) error
-	RollbackOrder(ctx context.Context, order_id uint64) error
+	RollbackOrder(ctx context.Context, orderID uint64) error
 }

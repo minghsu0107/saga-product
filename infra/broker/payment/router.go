@@ -9,7 +9,6 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	pb "github.com/minghsu0107/saga-pb"
 	conf "github.com/minghsu0107/saga-product/config"
-	"github.com/minghsu0107/saga-product/domain/model"
 	"github.com/minghsu0107/saga-product/infra/broker"
 	"github.com/minghsu0107/saga-product/pkg"
 	"github.com/minghsu0107/saga-product/service/payment"
@@ -22,13 +21,15 @@ type SagaPaymentHandler struct {
 
 // CreatePayment handler
 func (h *SagaPaymentHandler) CreatePayment(msg *message.Message) ([]*message.Message, error) {
-	var cmd pb.CreatePaymentCmd
-	if err := json.Unmarshal(msg.Payload, &cmd); err != nil {
+	purchase, pbPurchase, err := broker.DecodeCreatePurchaseCmd(msg.Payload)
+	if err != nil {
 		return nil, err
 	}
-
-	var reply pb.GeneralResponse
-	err := h.svc.CreatePayment(context.Background(), createPaymentCmd2domainPayment(&cmd))
+	reply := pb.CreatePurchaseResponse{
+		PurchaseId: purchase.ID,
+		Purchase:   pbPurchase,
+	}
+	err = h.svc.CreatePayment(context.Background(), purchase.Payment)
 	if err != nil {
 		reply.Success = false
 		reply.Error = err.Error()
@@ -50,13 +51,16 @@ func (h *SagaPaymentHandler) CreatePayment(msg *message.Message) ([]*message.Mes
 }
 
 func (h *SagaPaymentHandler) RollbackPayment(msg *message.Message) ([]*message.Message, error) {
-	var cmd pb.RollbackPaymentCmd
+	var cmd pb.RollbackCmd
 	if err := json.Unmarshal(msg.Payload, &cmd); err != nil {
 		return nil, err
 	}
 
-	var reply pb.GeneralResponse
-	err := h.svc.RollbackPayment(context.Background(), cmd.PaymentId)
+	reply := pb.RollbackResponse{
+		CustomerId: cmd.CustomerId,
+		PurchaseId: cmd.PurchaseId,
+	}
+	err := h.svc.RollbackPayment(context.Background(), cmd.PurchaseId)
 	if err != nil {
 		reply.Success = false
 		reply.Error = err.Error()
@@ -105,7 +109,7 @@ func NewPaymentEventRouter(config *conf.Config, sagaPaymentSvc payment.SagaPayme
 func (r *PaymentEventRouter) RegisterHandlers() {
 	r.router.AddHandler(
 		"sagapayment_create_payment_handler",
-		conf.PaymentTopic,
+		conf.CreatePaymentTopic,
 		r.subscriber,
 		conf.ReplyTopic,
 		r.publisher,
@@ -113,7 +117,7 @@ func (r *PaymentEventRouter) RegisterHandlers() {
 	)
 	r.router.AddHandler(
 		"sagapayment_rollback_payment_handler",
-		conf.PaymentTopic,
+		conf.RollbackPaymentTopic,
 		r.subscriber,
 		conf.ReplyTopic,
 		r.publisher,
@@ -128,16 +132,4 @@ func (r *PaymentEventRouter) Run() error {
 
 func (r *PaymentEventRouter) GracefulStop() error {
 	return r.router.Close()
-}
-
-func createPaymentCmd2domainPayment(cmd *pb.CreatePaymentCmd) *model.Payment {
-	var amount int64 = 0
-	for _, pbPurchasedItem := range cmd.Purchase.Order.PurchasedItems {
-		amount += pbPurchasedItem.Amount
-	}
-	return &model.Payment{
-		ID:           cmd.PaymentId,
-		CurrencyCode: cmd.Purchase.Payment.CurrencyCode,
-		Amount:       amount,
-	}
 }
