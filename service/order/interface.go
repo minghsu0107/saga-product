@@ -8,7 +8,7 @@ import (
 
 // OrderService interface
 type OrderService interface {
-	GetDetailedOrder(ctx context.Context, orderID uint64) (*model.DetailedOrder, error)
+	GetDetailedOrder(ctx context.Context, customerID, orderID uint64) (*model.DetailedOrder, error)
 }
 
 // SagaOrderService interface

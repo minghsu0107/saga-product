@@ -49,9 +49,9 @@ func InitializeProductServer() (*infra.ProductServer, error) {
 	redisCache := cache.NewRedisCache(configConfig, clusterClient)
 	productRepoCache := proxy.NewProductRepoCache(configConfig, productRepository, localCache, redisCache)
 	productService := product2.NewProductService(configConfig, productRepoCache)
-	sagaProductService := product2.NewSagaProductService(configConfig, productRepoCache)
-	router := product.NewRouter(productService, sagaProductService)
+	router := product.NewRouter(productService)
 	server := product.NewProductServer(configConfig, engine, router)
+	sagaProductService := product2.NewSagaProductService(configConfig, productRepoCache)
 	grpcServer := product3.NewProductServer(configConfig, productService, sagaProductService)
 	subscriber, err := broker.NewNATSSubscriber(configConfig)
 	if err != nil {

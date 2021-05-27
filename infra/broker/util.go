@@ -33,6 +33,7 @@ func DecodeCreatePurchaseCmd(payload message.Payload) (*model.Purchase, *pb.Purc
 		},
 		Payment: &model.Payment{
 			ID:           purchaseID,
+			CustomerID:   cmd.Purchase.Order.CustomerId,
 			CurrencyCode: cmd.Purchase.Payment.CurrencyCode,
 			Amount:       cmd.Purchase.Payment.Amount,
 		},

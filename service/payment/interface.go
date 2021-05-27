@@ -8,7 +8,7 @@ import (
 
 // PaymentService interface
 type PaymentService interface {
-	GetPayment(ctx context.Context, paymentID uint64) (*model.Payment, error)
+	GetPayment(ctx context.Context, customerID, paymentID uint64) (*model.Payment, error)
 }
 
 // SagaPaymentService interface

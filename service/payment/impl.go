@@ -32,11 +32,14 @@ func NewPaymentService(config *conf.Config, paymentRepo proxy.PaymentRepoCache) 
 }
 
 // GetPayment method
-func (svc *PaymentServiceImpl) GetPayment(ctx context.Context, paymentID uint64) (*model.Payment, error) {
+func (svc *PaymentServiceImpl) GetPayment(ctx context.Context, customerID, paymentID uint64) (*model.Payment, error) {
 	payment, err := svc.paymentRepo.GetPayment(ctx, paymentID)
 	if err != nil {
 		svc.logger.Error(err)
 		return nil, err
+	}
+	if customerID != payment.CustomerID {
+		return nil, ErrUnautorized
 	}
 	return payment, nil
 }

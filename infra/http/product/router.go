@@ -13,15 +13,13 @@ import (
 
 // Router wraps http handlers
 type Router struct {
-	productSvc     product.ProductService
-	sagaProductSvc product.SagaProductService
+	productSvc product.ProductService
 }
 
 // NewRouter is a factory for router instance
-func NewRouter(productSvc product.ProductService, sagaProductSvc product.SagaProductService) *Router {
+func NewRouter(productSvc product.ProductService) *Router {
 	return &Router{
-		productSvc:     productSvc,
-		sagaProductSvc: sagaProductSvc,
+		productSvc: productSvc,
 	}
 }
 

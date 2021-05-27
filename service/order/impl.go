@@ -32,12 +32,17 @@ func NewOrderService(config *conf.Config, orderRepo proxy.OrderRepoCache) OrderS
 }
 
 // GetOrder method
-func (svc *OrderServiceImpl) GetDetailedOrder(ctx context.Context, orderID uint64) (*model.DetailedOrder, error) {
+func (svc *OrderServiceImpl) GetDetailedOrder(ctx context.Context, customerID, orderID uint64) (*model.DetailedOrder, error) {
 	order, err := svc.orderRepo.GetOrder(ctx, orderID)
 	if err != nil {
 		svc.logger.Error(err)
 		return nil, err
 	}
+
+	if customerID != order.CustomerID {
+		return nil, ErrUnautorized
+	}
+
 	var productIDs []uint64
 	for _, purchasedItem := range *order.PurchasedItems {
 		productIDs = append(productIDs, purchasedItem.ProductID)
