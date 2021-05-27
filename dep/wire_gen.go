@@ -9,15 +9,26 @@ import (
 	"github.com/minghsu0107/saga-product/config"
 	"github.com/minghsu0107/saga-product/infra"
 	"github.com/minghsu0107/saga-product/infra/broker"
+	orchestrator2 "github.com/minghsu0107/saga-product/infra/broker/orchestrator"
+	order4 "github.com/minghsu0107/saga-product/infra/broker/order"
+	payment3 "github.com/minghsu0107/saga-product/infra/broker/payment"
 	product4 "github.com/minghsu0107/saga-product/infra/broker/product"
 	"github.com/minghsu0107/saga-product/infra/cache"
 	"github.com/minghsu0107/saga-product/infra/db"
+	"github.com/minghsu0107/saga-product/infra/grpc/auth"
+	order2 "github.com/minghsu0107/saga-product/infra/grpc/order"
 	product3 "github.com/minghsu0107/saga-product/infra/grpc/product"
+	"github.com/minghsu0107/saga-product/infra/http/middleware"
+	"github.com/minghsu0107/saga-product/infra/http/order"
+	"github.com/minghsu0107/saga-product/infra/http/payment"
 	"github.com/minghsu0107/saga-product/infra/http/product"
 	pkg2 "github.com/minghsu0107/saga-product/infra/observe"
 	"github.com/minghsu0107/saga-product/pkg"
 	"github.com/minghsu0107/saga-product/repo"
 	"github.com/minghsu0107/saga-product/repo/proxy"
+	"github.com/minghsu0107/saga-product/service/orchestrator"
+	order3 "github.com/minghsu0107/saga-product/service/order"
+	payment2 "github.com/minghsu0107/saga-product/service/payment"
 	product2 "github.com/minghsu0107/saga-product/service/product"
 )
 
@@ -71,6 +82,137 @@ func InitializeProductServer() (*infra.ProductServer, error) {
 	}
 	productServer := infra.NewProductServer(server, grpcServer, eventRouter, observibilityInjector)
 	return productServer, nil
+}
+
+func InitializeOrderServer() (*infra.OrderServer, error) {
+	configConfig, err := config.NewConfig()
+	if err != nil {
+		return nil, err
+	}
+	engine := order.NewEngine(configConfig)
+	productConn, err := order2.NewProductConn(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	gormDB, err := db.NewDatabaseConnection(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	orderRepository := repo.NewOrderRepository(configConfig, productConn, gormDB)
+	clusterClient, err := cache.NewRedisClient(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	redisCache := cache.NewRedisCache(configConfig, clusterClient)
+	orderRepoCache := proxy.NewOrderRepoCache(configConfig, orderRepository, redisCache)
+	orderService := order3.NewOrderService(configConfig, orderRepoCache)
+	router := order.NewRouter(orderService)
+	authConn, err := auth.NewAuthConn(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	authRepository := repo.NewAuthRepository(authConn, configConfig)
+	jwtAuthChecker := middleware.NewJWTAuthChecker(configConfig, authRepository)
+	server := order.NewOrderServer(configConfig, engine, router, jwtAuthChecker)
+	sagaOrderService := order3.NewSagaOrderService(configConfig, orderRepoCache)
+	subscriber, err := broker.NewNATSSubscriber(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	publisher, err := broker.NewNATSPublisher(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	eventRouter, err := order4.NewOrderEventRouter(configConfig, sagaOrderService, subscriber, publisher)
+	if err != nil {
+		return nil, err
+	}
+	observibilityInjector, err := pkg2.NewObservibilityInjector(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	orderServer := infra.NewOrderServer(server, eventRouter, observibilityInjector)
+	return orderServer, nil
+}
+
+func InitializePaymentServer() (*infra.PaymentServer, error) {
+	configConfig, err := config.NewConfig()
+	if err != nil {
+		return nil, err
+	}
+	engine := payment.NewEngine(configConfig)
+	gormDB, err := db.NewDatabaseConnection(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	paymentRepository := repo.NewPaymentRepository(gormDB)
+	clusterClient, err := cache.NewRedisClient(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	redisCache := cache.NewRedisCache(configConfig, clusterClient)
+	paymentRepoCache := proxy.NewPaymentRepoCache(configConfig, paymentRepository, redisCache)
+	paymentService := payment2.NewPaymentService(configConfig, paymentRepoCache)
+	router := payment.NewRouter(paymentService)
+	authConn, err := auth.NewAuthConn(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	authRepository := repo.NewAuthRepository(authConn, configConfig)
+	jwtAuthChecker := middleware.NewJWTAuthChecker(configConfig, authRepository)
+	server := payment.NewPaymentServer(configConfig, engine, router, jwtAuthChecker)
+	sagaPaymentService := payment2.NewSagaPaymentService(configConfig, paymentRepoCache)
+	subscriber, err := broker.NewNATSSubscriber(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	publisher, err := broker.NewNATSPublisher(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	eventRouter, err := payment3.NewPaymentEventRouter(configConfig, sagaPaymentService, subscriber, publisher)
+	if err != nil {
+		return nil, err
+	}
+	observibilityInjector, err := pkg2.NewObservibilityInjector(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	paymentServer := infra.NewPaymentServer(server, eventRouter, observibilityInjector)
+	return paymentServer, nil
+}
+
+func InitializeOrchestratorServer() (*infra.OrchestratorServer, error) {
+	configConfig, err := config.NewConfig()
+	if err != nil {
+		return nil, err
+	}
+	idGenerator, err := pkg.NewSonyFlake()
+	if err != nil {
+		return nil, err
+	}
+	publisher, err := broker.NewNATSPublisher(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	orchestratorService, err := orchestrator.NewOrchestratorService(configConfig, idGenerator, publisher)
+	if err != nil {
+		return nil, err
+	}
+	subscriber, err := broker.NewNATSSubscriber(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	eventRouter, err := orchestrator2.NewOrchestratorEventRouter(configConfig, orchestratorService, subscriber)
+	if err != nil {
+		return nil, err
+	}
+	observibilityInjector, err := pkg2.NewObservibilityInjector(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	orchestratorServer := infra.NewOrchestratorServer(eventRouter, observibilityInjector)
+	return orchestratorServer, nil
 }
 
 func InitializeMigrator(app string) (*db.Migrator, error) {

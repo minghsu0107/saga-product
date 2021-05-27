@@ -89,7 +89,7 @@ func (s *ProductServer) GracefulStop(ctx context.Context, done chan bool) {
 }
 
 // NewOrderServer factory
-func NewOrderServer(httpServer infra_http.Server, grpcServer infra_grpc.Server, eventRouter infra_broker.EventRouter, obsInjector *infra_observe.ObservibilityInjector) *OrderServer {
+func NewOrderServer(httpServer infra_http.Server, eventRouter infra_broker.EventRouter, obsInjector *infra_observe.ObservibilityInjector) *OrderServer {
 	return &OrderServer{
 		HTTPServer:  httpServer,
 		EventRouter: eventRouter,
@@ -132,7 +132,7 @@ func (s *OrderServer) GracefulStop(ctx context.Context, done chan bool) {
 }
 
 // NewPaymentServer factory
-func NewPaymentServer(httpServer infra_http.Server, grpcServer infra_grpc.Server, eventRouter infra_broker.EventRouter, obsInjector *infra_observe.ObservibilityInjector) *PaymentServer {
+func NewPaymentServer(httpServer infra_http.Server, eventRouter infra_broker.EventRouter, obsInjector *infra_observe.ObservibilityInjector) *PaymentServer {
 	return &PaymentServer{
 		HTTPServer:  httpServer,
 		EventRouter: eventRouter,

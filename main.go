@@ -4,7 +4,10 @@ import (
 	"log"
 	"os"
 
-	cmd "github.com/minghsu0107/saga-product/cmd"
+	"github.com/minghsu0107/saga-product/cmd/orchestrator"
+	"github.com/minghsu0107/saga-product/cmd/order"
+	"github.com/minghsu0107/saga-product/cmd/payment"
+	"github.com/minghsu0107/saga-product/cmd/product"
 )
 
 var (
@@ -14,7 +17,13 @@ var (
 func main() {
 	switch app {
 	case "product":
-		cmd.RunProductServer(app)
+		product.RunProductServer(app)
+	case "order":
+		order.RunOrderServer(app)
+	case "payment":
+		payment.RunPaymentServer(app)
+	case "orchestrator":
+		orchestrator.RunOrchestratorServer(app)
 	default:
 		log.Fatalf("invalid app name: %s. Should be one of 'product', 'order', 'payment', or 'orchestrator'", app)
 	}
