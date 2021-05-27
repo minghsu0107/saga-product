@@ -43,11 +43,8 @@ func (svc *OrderServiceImpl) GetDetailedOrder(ctx context.Context, customerID, o
 		return nil, ErrUnautorized
 	}
 
-	var productIDs []uint64
-	for _, purchasedItem := range *order.PurchasedItems {
-		productIDs = append(productIDs, purchasedItem.ProductID)
-	}
-	detailedPurchasedItems, err := svc.orderRepo.GetDetailedPurchasedItems(ctx, &productIDs)
+	detailedPurchasedItems, err := svc.orderRepo.GetDetailedPurchasedItems(ctx, order.PurchasedItems)
+
 	if err != nil {
 		svc.logger.Error(err)
 		return nil, err

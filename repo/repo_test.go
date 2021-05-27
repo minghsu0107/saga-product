@@ -4,7 +4,10 @@ import (
 	"context"
 	"sort"
 	"testing"
+	"time"
 
+	conf "github.com/minghsu0107/saga-product/config"
+	grpc_order "github.com/minghsu0107/saga-product/infra/grpc/order"
 	"github.com/minghsu0107/saga-product/pkg"
 
 	domain_model "github.com/minghsu0107/saga-product/domain/model"
@@ -16,6 +19,8 @@ import (
 
 var (
 	productRepo ProductRepository
+	orderRepo   OrderRepository
+	paymentRepo PaymentRepository
 	sf          pkg.IDGenerator
 )
 
@@ -31,9 +36,17 @@ var _ = BeforeSuite(func() {
 	if err != nil {
 		panic(err)
 	}
+	config := conf.Config{
+		ServiceOptions: &conf.ServiceOptions{
+			Rps:     100,
+			Timeout: time.Minute,
+		},
+	}
 	productRepo = NewProductRepository(db, sf)
-	db.Migrator().DropTable(&model.Product{}, &model.Idempotency{})
-	db.AutoMigrate(&model.Product{}, &model.Idempotency{})
+	orderRepo = NewOrderRepository(&config, new(grpc_order.ProductConn), db)
+	paymentRepo = NewPaymentRepository(db)
+	db.Migrator().DropTable(&model.Product{}, &model.Idempotency{}, &model.Order{}, &model.Payment{})
+	db.AutoMigrate(&model.Product{}, &model.Idempotency{}, &model.Order{}, &model.Payment{})
 })
 
 var _ = AfterSuite(func() {
@@ -46,30 +59,30 @@ var _ = AfterSuite(func() {
 })
 
 var _ = Describe("test repo", func() {
-	products := []domain_model.Product{
-		{
-			Detail: &domain_model.ProductDetail{
-				Name:        "first",
-				Description: "first product",
-				BrandName:   "test",
-				Price:       100,
-			},
-			Inventory: 10,
-		},
-		{
-			Detail: &domain_model.ProductDetail{
-				Name:        "second",
-				Description: "second product",
-				BrandName:   "test",
-				Price:       200,
-			},
-			Inventory: 10,
-		},
-	}
-	var productCatalogs []ProductCatalog
-	var cartItems []domain_model.CartItem
-	var purchasedItems []domain_model.PurchasedItem
 	var _ = Describe("product repo", func() {
+		products := []domain_model.Product{
+			{
+				Detail: &domain_model.ProductDetail{
+					Name:        "first",
+					Description: "first product",
+					BrandName:   "test",
+					Price:       100,
+				},
+				Inventory: 10,
+			},
+			{
+				Detail: &domain_model.ProductDetail{
+					Name:        "second",
+					Description: "second product",
+					BrandName:   "test",
+					Price:       200,
+				},
+				Inventory: 10,
+			},
+		}
+		var productCatalogs []ProductCatalog
+		var cartItems []domain_model.CartItem
+		var purchasedItems []domain_model.PurchasedItem
 		var _ = It("should create products", func() {
 			for _, product := range products {
 				err := productRepo.CreateProduct(context.Background(), &product)
@@ -164,6 +177,72 @@ var _ = Describe("test repo", func() {
 				err := productRepo.UpdateProductInventory(context.Background(), idempotencyKey, &purchasedItems)
 				Expect(err).To(Equal(ErrInsuffientInventory))
 			})
+		})
+	})
+	var _ = Describe("order repo", func() {
+		var orderID uint64 = 1
+		order := domain_model.Order{
+			ID:         orderID,
+			CustomerID: 3,
+			PurchasedItems: &[]domain_model.PurchasedItem{
+				{
+					ProductID: 1,
+					Amount:    5,
+				},
+				{
+					ProductID: 2,
+					Amount:    5,
+				},
+			},
+		}
+		var _ = It("should create order", func() {
+			err := orderRepo.CreateOrder(context.Background(), &order)
+			Expect(err).To(BeNil())
+		})
+		var _ = It("should retrieve order", func() {
+			exist, err := orderRepo.ExistOrder(context.Background(), orderID)
+			Expect(err).To(BeNil())
+			Expect(exist).To(BeTrue())
+
+			retrievedOrder, err := orderRepo.GetOrder(context.Background(), orderID)
+			Expect(err).To(BeNil())
+			Expect(retrievedOrder).To(Equal(&order))
+		})
+		var _ = It("should delete order", func() {
+			err := orderRepo.DeleteOrder(context.Background(), orderID)
+			Expect(err).To(BeNil())
+
+			_, err = orderRepo.GetOrder(context.Background(), orderID)
+			Expect(err).NotTo(BeNil())
+		})
+	})
+	var _ = Describe("payment repo", func() {
+		var paymentID uint64 = 1
+		payment := domain_model.Payment{
+			ID:           paymentID,
+			CustomerID:   3,
+			CurrencyCode: "NT",
+			Amount:       100,
+		}
+		var _ = It("should create payment", func() {
+			err := paymentRepo.CreatePayment(context.Background(), &payment)
+			Expect(err).To(BeNil())
+		})
+		var _ = It("should retrieve payment", func() {
+			exist, err := paymentRepo.ExistPayment(context.Background(), paymentID)
+			Expect(err).To(BeNil())
+			Expect(exist).To(BeTrue())
+
+			retrievedPayment, err := paymentRepo.GetPayment(context.Background(), paymentID)
+			Expect(err).To(BeNil())
+			Expect(retrievedPayment).To(Equal(&payment))
+		})
+		var _ = It("should delete payment", func() {
+			err := paymentRepo.DeletePayment(context.Background(), paymentID)
+			Expect(err).To(BeNil())
+
+			_, err = paymentRepo.GetPayment(context.Background(), paymentID)
+			Expect(err).NotTo(BeNil())
 		})
 	})
 })
