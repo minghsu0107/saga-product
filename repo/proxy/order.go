@@ -33,7 +33,7 @@ func NewOrderRepoCache(config *conf.Config, repo repo.OrderRepository, rc cache.
 	return &OrderRepoCacheImpl{
 		orderRepo: repo,
 		rc:        rc,
-		logger:    config.Logger.ContextLogger.WithField("type", "cache"),
+		logger:    config.Logger.ContextLogger.WithField("type", "cache:OrderRepoCache"),
 	}
 }
 
@@ -87,5 +87,5 @@ func (c *OrderRepoCacheImpl) logError(err error) {
 	if err == nil {
 		return
 	}
-	c.logger.Error(err)
+	c.logger.Error(err.Error())
 }

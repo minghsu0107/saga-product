@@ -14,6 +14,9 @@ type Product struct {
 
 // Idempotency data model
 type Idempotency struct {
-	ID        uint64 `gorm:"primaryKey"`
-	CreatedAt int64  `gorm:"autoCreateTime:milli"`
+	ID         uint64 `gorm:"primaryKey"`
+	ProductID  uint64 `gorm:"primaryKey"`
+	Amount     int64  `gorm:"not null"`
+	Rollbacked bool   `gorm:"not null"`
+	CreatedAt  int64  `gorm:"autoCreateTime:milli"`
 }

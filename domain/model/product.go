@@ -50,3 +50,10 @@ type ProductCatalog struct {
 	Inventory int64
 	Price     int64
 }
+
+// Idempotency entity
+type Idempotency struct {
+	ID        uint64
+	ProductID uint64
+	Amount    int64
+}

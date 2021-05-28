@@ -50,7 +50,7 @@ func NewOrderRepository(config *conf.Config, conn *grpc_order.ProductConn, db *g
 			"GetProducts",
 			encodeGRPCRequest,
 			decodeGRPCResponse,
-			&pb.CheckProductsResponse{},
+			&pb.Products{},
 			append(options, grpctransport.ClientBefore(grpctransport.SetRequestHeader(ServiceNameHeader, svcName)))...,
 		).Endpoint()
 		getProducts = limiter(getProducts)

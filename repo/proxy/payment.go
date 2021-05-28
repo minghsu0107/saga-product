@@ -32,7 +32,7 @@ func NewPaymentRepoCache(config *conf.Config, repo repo.PaymentRepository, rc ca
 	return &PaymentRepoCacheImpl{
 		paymentRepo: repo,
 		rc:          rc,
-		logger:      config.Logger.ContextLogger.WithField("type", "cache"),
+		logger:      config.Logger.ContextLogger.WithField("type", "cache:PaymentRepoCache"),
 	}
 }
 
@@ -82,5 +82,5 @@ func (c *PaymentRepoCacheImpl) logError(err error) {
 	if err == nil {
 		return
 	}
-	c.logger.Error(err)
+	c.logger.Error(err.Error())
 }

@@ -20,6 +20,7 @@ type ProductRepoCache interface {
 	GetProductInventory(ctx context.Context, productID uint64) (int64, error)
 	CreateProduct(ctx context.Context, product *domain_model.Product) error
 	UpdateProductInventory(ctx context.Context, idempotencyKey uint64, purchasedItems *[]domain_model.PurchasedItem) error
+	RollbackProductInventory(ctx context.Context, idempotencyKey uint64) error
 }
 
 // ProductRepoCacheImpl implementation
@@ -30,17 +31,12 @@ type ProductRepoCacheImpl struct {
 	logger      *logrus.Entry
 }
 
-// RedisProductInventory stores product inventory in redis
-type RedisProductInventory struct {
-	Inventory int64 `redis:"inventory"`
-}
-
 func NewProductRepoCache(config *conf.Config, repo repo.ProductRepository, lc cache.LocalCache, rc cache.RedisCache) ProductRepoCache {
 	return &ProductRepoCacheImpl{
 		productRepo: repo,
 		lc:          lc,
 		rc:          rc,
-		logger:      config.Logger.ContextLogger.WithField("type", "cache"),
+		logger:      config.Logger.ContextLogger.WithField("type", "cache:ProductRepoCache"),
 	}
 }
 
@@ -121,13 +117,13 @@ func (c *ProductRepoCacheImpl) GetProductDetail(ctx context.Context, productID u
 }
 
 func (c *ProductRepoCacheImpl) GetProductInventory(ctx context.Context, productID uint64) (int64, error) {
-	redisInventory := &RedisProductInventory{}
+	var redisInventory int64
 	key := pkg.Join("productinventory:", strconv.FormatUint(productID, 10))
 
-	ok, err := c.rc.Get(ctx, key, redisInventory)
+	ok, err := c.rc.Get(ctx, key, &redisInventory)
 	if ok && err == nil {
-		c.logError(c.lc.Set(key, redisInventory))
-		return redisInventory.Inventory, nil
+		c.logError(c.lc.Set(key, &redisInventory))
+		return redisInventory, nil
 	}
 
 	// get lock (request coalescing)
@@ -137,9 +133,9 @@ func (c *ProductRepoCacheImpl) GetProductInventory(ctx context.Context, productI
 	}
 	defer mutex.Unlock()
 
-	ok, err = c.rc.Get(ctx, key, redisInventory)
+	ok, err = c.rc.Get(ctx, key, &redisInventory)
 	if ok && err == nil {
-		return redisInventory.Inventory, nil
+		return redisInventory, nil
 	}
 	var inventory int64
 	inventory, err = c.productRepo.GetProductInventory(ctx, productID)
@@ -147,7 +143,7 @@ func (c *ProductRepoCacheImpl) GetProductInventory(ctx context.Context, productI
 		return 0, err
 	}
 
-	c.logError(c.rc.Set(ctx, key, &RedisProductInventory{inventory}))
+	c.logError(c.rc.Set(ctx, key, &inventory))
 	return inventory, nil
 }
 
@@ -166,11 +162,37 @@ func (c *ProductRepoCacheImpl) UpdateProductInventory(ctx context.Context, idemp
 			OpType: cache.INCRBY,
 			Payload: cache.RedisIncrByPayload{
 				Key: pkg.Join("productinventory:", strconv.FormatUint(purchasedItem.ProductID, 10)),
-				Val: purchasedItem.Amount,
+				Val: -purchasedItem.Amount,
 			},
 		})
 	}
-	c.logger.Error(c.rc.ExecPipeLine(ctx, &cmds))
+	c.logError(c.rc.ExecPipeLine(ctx, &cmds))
+	return nil
+}
+
+// RollbackProductInventory method
+func (c *ProductRepoCacheImpl) RollbackProductInventory(ctx context.Context, idempotencyKey uint64) error {
+	var err error
+	var rollbacked bool
+	var idempotencies *[]domain_model.Idempotency
+	rollbacked, idempotencies, err = c.productRepo.RollbackProductInventory(ctx, idempotencyKey)
+	if err != nil {
+		return err
+	}
+	if rollbacked {
+		return nil
+	}
+	var cmds []cache.RedisCmd
+	for _, idempotency := range *idempotencies {
+		cmds = append(cmds, cache.RedisCmd{
+			OpType: cache.INCRBY,
+			Payload: cache.RedisIncrByPayload{
+				Key: pkg.Join("productinventory:", strconv.FormatUint(idempotency.ProductID, 10)),
+				Val: idempotency.Amount,
+			},
+		})
+	}
+	c.logError(c.rc.ExecPipeLine(ctx, &cmds))
 	return nil
 }
 
@@ -178,5 +200,5 @@ func (c *ProductRepoCacheImpl) logError(err error) {
 	if err == nil {
 		return
 	}
-	c.logger.Error(err)
+	c.logger.Error(err.Error())
 }

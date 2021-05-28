@@ -35,7 +35,7 @@ func NewOrderService(config *conf.Config, orderRepo proxy.OrderRepoCache) OrderS
 func (svc *OrderServiceImpl) GetDetailedOrder(ctx context.Context, customerID, orderID uint64) (*model.DetailedOrder, error) {
 	order, err := svc.orderRepo.GetOrder(ctx, orderID)
 	if err != nil {
-		svc.logger.Error(err)
+		svc.logger.Error(err.Error())
 		return nil, err
 	}
 
@@ -46,7 +46,7 @@ func (svc *OrderServiceImpl) GetDetailedOrder(ctx context.Context, customerID, o
 	detailedPurchasedItems, err := svc.orderRepo.GetDetailedPurchasedItems(ctx, order.PurchasedItems)
 
 	if err != nil {
-		svc.logger.Error(err)
+		svc.logger.Error(err.Error())
 		return nil, err
 	}
 	return &model.DetailedOrder{
@@ -69,7 +69,7 @@ func NewSagaOrderService(config *conf.Config, orderRepo proxy.OrderRepoCache) Sa
 // CreateOrder method
 func (svc *SagaOrderServiceImpl) CreateOrder(ctx context.Context, order *model.Order) error {
 	if err := svc.orderRepo.CreateOrder(ctx, order); err != nil {
-		svc.logger.Error(err)
+		svc.logger.Error(err.Error())
 		return err
 	}
 	return nil
@@ -79,7 +79,7 @@ func (svc *SagaOrderServiceImpl) CreateOrder(ctx context.Context, order *model.O
 func (svc *SagaOrderServiceImpl) RollbackOrder(ctx context.Context, orderID uint64) error {
 	exist, err := svc.orderRepo.ExistOrder(ctx, orderID)
 	if err != nil {
-		svc.logger.Error(err)
+		svc.logger.Error(err.Error())
 		return err
 	}
 	if exist {
@@ -87,7 +87,7 @@ func (svc *SagaOrderServiceImpl) RollbackOrder(ctx context.Context, orderID uint
 	}
 	err = svc.orderRepo.DeleteOrder(ctx, orderID)
 	if err != nil {
-		svc.logger.Error(err)
+		svc.logger.Error(err.Error())
 		return err
 	}
 	return nil

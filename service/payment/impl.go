@@ -35,7 +35,7 @@ func NewPaymentService(config *conf.Config, paymentRepo proxy.PaymentRepoCache) 
 func (svc *PaymentServiceImpl) GetPayment(ctx context.Context, customerID, paymentID uint64) (*model.Payment, error) {
 	payment, err := svc.paymentRepo.GetPayment(ctx, paymentID)
 	if err != nil {
-		svc.logger.Error(err)
+		svc.logger.Error(err.Error())
 		return nil, err
 	}
 	if customerID != payment.CustomerID {
@@ -57,7 +57,7 @@ func NewSagaPaymentService(config *conf.Config, paymentRepo proxy.PaymentRepoCac
 // CreatePayment method
 func (svc *SagaPaymentServiceImpl) CreatePayment(ctx context.Context, payment *model.Payment) error {
 	if err := svc.paymentRepo.CreatePayment(ctx, payment); err != nil {
-		svc.logger.Error(err)
+		svc.logger.Error(err.Error())
 		return err
 	}
 	return nil
@@ -67,7 +67,7 @@ func (svc *SagaPaymentServiceImpl) CreatePayment(ctx context.Context, payment *m
 func (svc *SagaPaymentServiceImpl) RollbackPayment(ctx context.Context, paymentID uint64) error {
 	exist, err := svc.paymentRepo.ExistPayment(ctx, paymentID)
 	if err != nil {
-		svc.logger.Error(err)
+		svc.logger.Error(err.Error())
 		return err
 	}
 	if exist {
@@ -75,7 +75,7 @@ func (svc *SagaPaymentServiceImpl) RollbackPayment(ctx context.Context, paymentI
 	}
 	err = svc.paymentRepo.DeletePayment(ctx, paymentID)
 	if err != nil {
-		svc.logger.Error(err)
+		svc.logger.Error(err.Error())
 		return err
 	}
 	return nil

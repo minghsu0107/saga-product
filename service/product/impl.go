@@ -31,7 +31,7 @@ func (svc *ProductServiceImpl) CheckProducts(ctx context.Context, cartItems *[]m
 	for _, cartItem := range *cartItems {
 		status, err := svc.productRepo.CheckProduct(ctx, &cartItem)
 		if err != nil {
-			svc.logger.Error(err)
+			svc.logger.Error(err.Error())
 			return nil, err
 		}
 		productStatuses = append(productStatuses, *mapProductStatus(status))
@@ -42,7 +42,7 @@ func (svc *ProductServiceImpl) CheckProducts(ctx context.Context, cartItems *[]m
 func (svc *ProductServiceImpl) ListProducts(ctx context.Context, offset, size int) (*[]model.ProductCatalog, error) {
 	repoProductCatalogs, err := svc.productRepo.ListProducts(ctx, offset, size)
 	if err != nil {
-		svc.logger.Error(err)
+		svc.logger.Error(err.Error())
 		return nil, err
 	}
 	var productCatalogs []model.ProductCatalog
@@ -62,12 +62,12 @@ func (svc *ProductServiceImpl) GetProducts(ctx context.Context, productIDs []uin
 	for _, productID := range productIDs {
 		productDetail, err := svc.productRepo.GetProductDetail(ctx, productID)
 		if err != nil {
-			svc.logger.Error(err)
+			svc.logger.Error(err.Error())
 			return nil, err
 		}
 		inventory, err := svc.productRepo.GetProductInventory(ctx, productID)
 		if err != nil {
-			svc.logger.Error(err)
+			svc.logger.Error(err.Error())
 			return nil, err
 		}
 		products = append(products, model.Product{
@@ -87,7 +87,7 @@ func (svc *ProductServiceImpl) GetProducts(ctx context.Context, productIDs []uin
 func (svc *ProductServiceImpl) CreateProduct(ctx context.Context, product *model.Product) error {
 	err := svc.productRepo.CreateProduct(ctx, product)
 	if err != nil {
-		svc.logger.Error(err)
+		svc.logger.Error(err.Error())
 		return err
 	}
 	return nil
@@ -121,6 +121,7 @@ func NewSagaProductService(config *conf.Config, productRepo proxy.ProductRepoCac
 	}
 }
 
+// UpdateProductInventory method
 func (svc *SagaProductServiceImpl) UpdateProductInventory(ctx context.Context, idempotencyKey uint64, purchasedItems *[]model.PurchasedItem) error {
 	err := svc.productRepo.UpdateProductInventory(ctx, idempotencyKey, purchasedItems)
 	if err != nil {
@@ -130,12 +131,18 @@ func (svc *SagaProductServiceImpl) UpdateProductInventory(ctx context.Context, i
 		if err == repo.ErrInvalidIdempotency {
 			return ErrInvalidIdempotency
 		}
-		svc.logger.Error(err)
+		svc.logger.Error(err.Error())
 		return err
 	}
 	return nil
 }
+
+// RollbackProductInventory method
 func (svc *SagaProductServiceImpl) RollbackProductInventory(ctx context.Context, idempotencyKey uint64) error {
-	svc.logger.Infof("rollback product inventory; idempotency key: %v\n", idempotencyKey)
+	err := svc.productRepo.RollbackProductInventory(ctx, idempotencyKey)
+	if err != nil {
+		svc.logger.Error(err.Error())
+		return err
+	}
 	return nil
 }

@@ -52,7 +52,7 @@ func InitializeServer(ocAgentHost string, logrusEntry *log.Entry) *grpc.Server {
 			return "grpc.time_ns", duration.Nanoseconds()
 		}),
 	}
-	grpc_logrus.ReplaceGrpcLogger(logrusEntry)
+	//grpc_logrus.ReplaceGrpcLogger(logrusEntry)
 
 	opts = append(opts,
 		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(

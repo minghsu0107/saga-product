@@ -165,7 +165,7 @@ var _ = Describe("test repo", func() {
 				err := productRepo.UpdateProductInventory(context.Background(), idempotencyKey, &purchasedItems)
 				Expect(err).To(Equal(ErrInvalidIdempotency))
 			})
-			var _ = It("should rollback if inventory is not enough", func() {
+			var _ = It("should fail if inventory is not enough", func() {
 				idempotencyKey = 2
 				for _, cartItem := range cartItems {
 					productID := cartItem.ProductID
@@ -176,6 +176,30 @@ var _ = Describe("test repo", func() {
 				}
 				err := productRepo.UpdateProductInventory(context.Background(), idempotencyKey, &purchasedItems)
 				Expect(err).To(Equal(ErrInsuffientInventory))
+			})
+			var _ = It("should rollback inventory", func() {
+				idempotencyKey = 1
+				rollbacked, idempotencies, err := productRepo.RollbackProductInventory(context.Background(), idempotencyKey)
+				Expect(err).To(BeNil())
+				Expect(rollbacked).To(BeFalse())
+
+				var realIdempotencies []domain_model.Idempotency
+				for _, cartItem := range cartItems {
+					productID := cartItem.ProductID
+					amount := cartItem.Amount
+					realIdempotencies = append(realIdempotencies, domain_model.Idempotency{
+						ID:        idempotencyKey,
+						ProductID: productID,
+						Amount:    amount,
+					})
+				}
+				Expect(idempotencies).To(Equal(&realIdempotencies))
+			})
+			var _ = It("should not rollback inventory again", func() {
+				idempotencyKey = 1
+				rollbacked, _, err := productRepo.RollbackProductInventory(context.Background(), idempotencyKey)
+				Expect(err).To(BeNil())
+				Expect(rollbacked).To(BeTrue())
 			})
 		})
 	})

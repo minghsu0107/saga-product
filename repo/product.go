@@ -22,6 +22,7 @@ type ProductRepository interface {
 	GetProductInventory(ctx context.Context, productID uint64) (int64, error)
 	CreateProduct(ctx context.Context, product *domain_model.Product) error
 	UpdateProductInventory(ctx context.Context, idempotencyKey uint64, purchasedItems *[]domain_model.PurchasedItem) error
+	RollbackProductInventory(ctx context.Context, idempotencyKey uint64) (bool, *[]domain_model.Idempotency, error)
 }
 
 // ProductStatus select schema
@@ -153,7 +154,7 @@ func (repo *ProductRepositoryImpl) UpdateProductInventory(ctx context.Context, i
 
 	sort.Slice(*purchasedItems, func(i, j int) bool { return (*purchasedItems)[i].ProductID < (*purchasedItems)[j].ProductID })
 	tx := repo.db.Begin(&sql.TxOptions{
-		Isolation: sql.LevelRepeatableRead,
+		Isolation: sql.LevelReadCommitted,
 	})
 	defer func() {
 		if r := recover(); r != nil {
@@ -181,13 +182,72 @@ func (repo *ProductRepositoryImpl) UpdateProductInventory(ctx context.Context, i
 		}
 	}
 
-	if err := tx.Model(&model.Idempotency{}).Create(&model.Idempotency{
-		ID: idempotencyKey,
-	}).WithContext(ctx).Error; err != nil {
+	var idempotencies []model.Idempotency
+	for _, purchasedItem := range *purchasedItems {
+		idempotencies = append(idempotencies, model.Idempotency{
+			ID:         idempotencyKey,
+			ProductID:  purchasedItem.ProductID,
+			Amount:     purchasedItem.Amount,
+			Rollbacked: false,
+		})
+	}
+	if err := tx.Model(&model.Idempotency{}).Create(&idempotencies).WithContext(ctx).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
 	return tx.Commit().Error
+}
+
+// RollbackProductInventory method
+func (repo *ProductRepositoryImpl) RollbackProductInventory(ctx context.Context, idempotencyKey uint64) (bool, *[]domain_model.Idempotency, error) {
+	var idempotencies []model.Idempotency
+	if err := repo.db.Model(&model.Idempotency{}).Select("product_id", "amount", "rollbacked").Where("id = ?", idempotencyKey).Order("product_id").Find(&idempotencies).Error; err != nil {
+		return false, nil, err
+	}
+	if len(idempotencies) == 0 {
+		return false, nil, fmt.Errorf("idempotency kwy not found: %v", idempotencyKey)
+	}
+	if idempotencies[0].Rollbacked {
+		return true, nil, nil
+	}
+
+	tx := repo.db.Begin(&sql.TxOptions{
+		Isolation: sql.LevelReadCommitted,
+	})
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Error; err != nil {
+		return false, nil, err
+	}
+
+	for _, idempotency := range idempotencies {
+		var productInventory productInventory
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Model(&model.Product{}).Select("inventory").Where("id = ?", idempotency.ProductID).First(&productInventory).Error; err != nil {
+			tx.Rollback()
+			return false, nil, err
+		}
+		if err := tx.Model(&model.Product{}).Where("id = ?", idempotency.ProductID).Update("inventory", gorm.Expr("inventory + ?", idempotency.Amount)).Error; err != nil {
+			tx.Rollback()
+			return false, nil, err
+		}
+	}
+	if err := tx.Model(&model.Idempotency{}).Where("id = ?", idempotencyKey).Update("rollbacked", true).WithContext(ctx).Error; err != nil {
+		tx.Rollback()
+		return false, nil, err
+	}
+	var domainIdempotencies []domain_model.Idempotency
+	for _, idempotency := range idempotencies {
+		domainIdempotencies = append(domainIdempotencies, domain_model.Idempotency{
+			ID:        idempotencyKey,
+			ProductID: idempotency.ProductID,
+			Amount:    idempotency.Amount,
+		})
+	}
+	return false, &domainIdempotencies, tx.Commit().Error
 }
 
 func paginate(db *gorm.DB, offset, size int) *gorm.DB {
