@@ -22,8 +22,8 @@ nats:
   clusterID: "test-cluster"
   url: "nats://127.0.0.1:4222"
   clientID: "" # will be randomly generated if not specified
-  queueGroup: "orchestrator-queue"
-  durableName: "purchase-svc-durable"
+  queueGroup: PLACEHOLDER # should be overrided
+  durableName: PLACEHOLDER # should be overrided
   subscriberCount: 3
 rpcEndpoints:
   authSvcHost: ""
