@@ -58,6 +58,7 @@ func (svc *OrchestratorServiceImpl) StartTransaction(ctx context.Context, purcha
 		Step:       event.StepUpdateProductInventory,
 		Status:     event.StatusExecute,
 	}, correlationID)
+	svc.logger.Infof("update product inventory %v", purchase.ID)
 	return svc.publishMessage(ctx, conf.UpdateProductInventoryTopic, msg)
 }
 
@@ -127,6 +128,7 @@ func (svc *OrchestratorServiceImpl) HandleReply(ctx context.Context, msg *messag
 }
 
 func (svc *OrchestratorServiceImpl) rollbackProductInventory(ctx context.Context, customerID, purchaseID uint64, correlationID string) error {
+	svc.logger.Infof("rollback product inventory %v", purchaseID)
 	svc.publishPurchaseResult(ctx, &event.PurchaseResult{
 		CustomerID: customerID,
 		PurchaseID: purchaseID,
@@ -228,6 +230,7 @@ func (svc *OrchestratorServiceImpl) rollbackFromPayment(ctx context.Context, cus
 }
 
 func (svc *OrchestratorServiceImpl) createOrder(ctx context.Context, purchase *model.Purchase, correlationID string) error {
+	svc.logger.Infof("create order %v", purchase.ID)
 	svc.publishPurchaseResult(ctx, &event.PurchaseResult{
 		CustomerID: purchase.Order.CustomerID,
 		PurchaseID: purchase.ID,
@@ -254,6 +257,7 @@ func (svc *OrchestratorServiceImpl) createOrder(ctx context.Context, purchase *m
 }
 
 func (svc *OrchestratorServiceImpl) rollbackOrder(ctx context.Context, customerID, purchaseID uint64, correlationID string) error {
+	svc.logger.Infof("rollback order %v", purchaseID)
 	cmd := &pb.RollbackCmd{
 		PurchaseId: purchaseID,
 		Timestamp:  pkg.Time2pbTimestamp(time.Now()),
@@ -268,6 +272,7 @@ func (svc *OrchestratorServiceImpl) rollbackOrder(ctx context.Context, customerI
 }
 
 func (svc *OrchestratorServiceImpl) createPayment(ctx context.Context, purchase *model.Purchase, correlationID string) error {
+	svc.logger.Infof("create payment %v", purchase.ID)
 	svc.publishPurchaseResult(ctx, &event.PurchaseResult{
 		CustomerID: purchase.Order.CustomerID,
 		PurchaseID: purchase.ID,
@@ -294,6 +299,7 @@ func (svc *OrchestratorServiceImpl) createPayment(ctx context.Context, purchase 
 }
 
 func (svc *OrchestratorServiceImpl) rollbackPayment(ctx context.Context, customerID, purchaseID uint64, correlationID string) error {
+	svc.logger.Infof("rollback payment %v", purchaseID)
 	cmd := &pb.RollbackCmd{
 		PurchaseId: purchaseID,
 		Timestamp:  pkg.Time2pbTimestamp(time.Now()),
