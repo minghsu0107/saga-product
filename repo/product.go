@@ -205,7 +205,7 @@ func (repo *ProductRepositoryImpl) RollbackProductInventory(ctx context.Context,
 		return false, nil, err
 	}
 	if len(idempotencies) == 0 {
-		return false, nil, fmt.Errorf("idempotency kwy not found: %v", idempotencyKey)
+		return false, nil, fmt.Errorf("idempotency key not found: %v", idempotencyKey)
 	}
 	if idempotencies[0].Rollbacked {
 		return true, nil, nil
