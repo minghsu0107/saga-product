@@ -28,11 +28,12 @@ type ProductRepository interface {
 // ProductStatus select schema
 type ProductStatus struct {
 	ProductID uint64
+	Price     int64
 	Exist     bool
 }
 
 type productCheck struct {
-	ID uint64
+	Price int64
 }
 
 type productInventory struct {
@@ -73,10 +74,11 @@ func NewProductRepository(db *gorm.DB, sf pkg.IDGenerator) ProductRepository {
 func (repo *ProductRepositoryImpl) CheckProduct(ctx context.Context, cartItem *domain_model.CartItem) (*ProductStatus, error) {
 	var check productCheck
 	productID := cartItem.ProductID
-	if err := repo.db.Model(&model.Product{}).Select("id").Where("id = ?", productID).First(&check).WithContext(ctx).Error; err != nil {
+	if err := repo.db.Model(&model.Product{}).Select("price").Where("id = ?", productID).First(&check).WithContext(ctx).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &ProductStatus{
 				ProductID: productID,
+				Price:     0,
 				Exist:     false,
 			}, nil
 		}
@@ -84,6 +86,7 @@ func (repo *ProductRepositoryImpl) CheckProduct(ctx context.Context, cartItem *d
 	}
 	return &ProductStatus{
 		ProductID: productID,
+		Price:     check.Price,
 		Exist:     true,
 	}, nil
 }

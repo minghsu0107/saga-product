@@ -96,6 +96,7 @@ func (svc *ProductServiceImpl) CreateProduct(ctx context.Context, product *model
 func mapProductStatus(status *repo.ProductStatus) *model.ProductStatus {
 	productStatus := &model.ProductStatus{
 		ProductID: status.ProductID,
+		Price:     status.Price,
 	}
 	if status.Exist {
 		productStatus.Status = model.ProductOk

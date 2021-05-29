@@ -40,6 +40,7 @@ const (
 // ProductStatus value object
 type ProductStatus struct {
 	ProductID uint64
+	Price     int64
 	Status    Status
 }
 

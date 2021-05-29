@@ -116,6 +116,7 @@ var _ = Describe("test repo", func() {
 			Expect(err).To(BeNil())
 			Expect(status).To(Equal(&ProductStatus{
 				ProductID: cartItems[0].ProductID,
+				Price:     products[0].Detail.Price,
 				Exist:     true,
 			}))
 
@@ -124,6 +125,7 @@ var _ = Describe("test repo", func() {
 			Expect(err).To(BeNil())
 			Expect(status).To(Equal(&ProductStatus{
 				ProductID: fakeID,
+				Price:     0,
 				Exist:     false,
 			}))
 		})

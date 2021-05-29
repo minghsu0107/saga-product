@@ -30,6 +30,7 @@ func (srv *ProductServer) CheckProducts(ctx context.Context, req *pb.CheckProduc
 	for _, status := range *productStatuses {
 		pbProductStatuses = append(pbProductStatuses, &pb.ProductStatus{
 			ProductId: status.ProductID,
+			Price:     status.Price,
 			Status:    getPbProductStatus(status.Status),
 		})
 	}
