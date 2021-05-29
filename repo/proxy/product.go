@@ -18,7 +18,7 @@ type ProductRepoCache interface {
 	ListProducts(ctx context.Context, offset, size int) (*[]repo.ProductCatalog, error)
 	GetProductDetail(ctx context.Context, productID uint64) (*repo.ProductDetail, error)
 	GetProductInventory(ctx context.Context, productID uint64) (int64, error)
-	CreateProduct(ctx context.Context, product *domain_model.Product) error
+	CreateProduct(ctx context.Context, product *domain_model.Product) (uint64, error)
 	UpdateProductInventory(ctx context.Context, idempotencyKey uint64, purchasedItems *[]domain_model.PurchasedItem) error
 	RollbackProductInventory(ctx context.Context, idempotencyKey uint64) error
 }
@@ -147,7 +147,7 @@ func (c *ProductRepoCacheImpl) GetProductInventory(ctx context.Context, productI
 	return inventory, nil
 }
 
-func (c *ProductRepoCacheImpl) CreateProduct(ctx context.Context, product *domain_model.Product) error {
+func (c *ProductRepoCacheImpl) CreateProduct(ctx context.Context, product *domain_model.Product) (uint64, error) {
 	return c.productRepo.CreateProduct(ctx, product)
 }
 

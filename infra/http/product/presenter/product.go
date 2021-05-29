@@ -10,6 +10,11 @@ type Product struct {
 	Inventory   int64  `json:"inventory" binding:"required"`
 }
 
+// ProductCreation response payload
+type ProductCreation struct {
+	ID uint64 `json:"id"`
+}
+
 // ProductCatalogs response payload
 type ProductCatalogs struct {
 	Catalogs []Productcatalog `json:"catalogs"`

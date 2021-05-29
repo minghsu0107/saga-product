@@ -88,7 +88,7 @@ func (r *Router) CreateProduct(c *gin.Context) {
 		response(c, http.StatusBadRequest, common_presenter.ErrInvalidParam)
 		return
 	}
-	err := r.productSvc.CreateProduct(c.Request.Context(), &model.Product{
+	productID, err := r.productSvc.CreateProduct(c.Request.Context(), &model.Product{
 		Detail: &model.ProductDetail{
 			Name:        product.Name,
 			Description: product.Description,
@@ -99,7 +99,9 @@ func (r *Router) CreateProduct(c *gin.Context) {
 	})
 	switch err {
 	case nil:
-		c.JSON(http.StatusCreated, common_presenter.OkMsg)
+		c.JSON(http.StatusCreated, &presenter.ProductCreation{
+			ID: productID,
+		})
 		return
 	default:
 		response(c, http.StatusInternalServerError, common_presenter.ErrServer)

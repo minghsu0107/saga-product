@@ -85,8 +85,13 @@ var _ = Describe("test repo", func() {
 		var purchasedItems []domain_model.PurchasedItem
 		var _ = It("should create products", func() {
 			for _, product := range products {
-				err := productRepo.CreateProduct(context.Background(), &product)
+				sfID, err := sf.NextID()
+				if err != nil {
+					panic(err)
+				}
+				productID, err := productRepo.CreateProduct(context.Background(), &product)
 				Expect(err).To(BeNil())
+				Expect(productID > sfID)
 			}
 		})
 		var _ = It("should list proudcts", func() {

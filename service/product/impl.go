@@ -84,13 +84,13 @@ func (svc *ProductServiceImpl) GetProducts(ctx context.Context, productIDs []uin
 	return &products, nil
 }
 
-func (svc *ProductServiceImpl) CreateProduct(ctx context.Context, product *model.Product) error {
-	err := svc.productRepo.CreateProduct(ctx, product)
+func (svc *ProductServiceImpl) CreateProduct(ctx context.Context, product *model.Product) (uint64, error) {
+	productID, err := svc.productRepo.CreateProduct(ctx, product)
 	if err != nil {
 		svc.logger.Error(err.Error())
-		return err
+		return 0, err
 	}
-	return nil
+	return productID, nil
 }
 
 func mapProductStatus(status *repo.ProductStatus) *model.ProductStatus {

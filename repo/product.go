@@ -20,7 +20,7 @@ type ProductRepository interface {
 	ListProducts(ctx context.Context, offset, size int) (*[]ProductCatalog, error)
 	GetProductDetail(ctx context.Context, productID uint64) (*ProductDetail, error)
 	GetProductInventory(ctx context.Context, productID uint64) (int64, error)
-	CreateProduct(ctx context.Context, product *domain_model.Product) error
+	CreateProduct(ctx context.Context, product *domain_model.Product) (uint64, error)
 	UpdateProductInventory(ctx context.Context, idempotencyKey uint64, purchasedItems *[]domain_model.PurchasedItem) error
 	RollbackProductInventory(ctx context.Context, idempotencyKey uint64) (bool, *[]domain_model.Idempotency, error)
 }
@@ -122,10 +122,10 @@ func (repo *ProductRepositoryImpl) GetProductInventory(ctx context.Context, prod
 }
 
 // CreateProduct method
-func (repo *ProductRepositoryImpl) CreateProduct(ctx context.Context, product *domain_model.Product) error {
+func (repo *ProductRepositoryImpl) CreateProduct(ctx context.Context, product *domain_model.Product) (uint64, error) {
 	sonyflakeID, err := repo.sf.NextID()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if err := repo.db.Create(&model.Product{
 		ID:          sonyflakeID,
@@ -135,9 +135,9 @@ func (repo *ProductRepositoryImpl) CreateProduct(ctx context.Context, product *d
 		Inventory:   product.Inventory,
 		Price:       product.Detail.Price,
 	}).WithContext(ctx).Error; err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	return sonyflakeID, nil
 }
 
 // UpdateProductInventory method
