@@ -16,7 +16,6 @@ import (
 type OrderRepoCache interface {
 	GetOrder(ctx context.Context, orderID uint64) (*domain_model.Order, error)
 	GetDetailedPurchasedItems(ctx context.Context, purchasedItems *[]domain_model.PurchasedItem) (*[]domain_model.DetailedPurchasedItem, error)
-	ExistOrder(ctx context.Context, orderID uint64) (bool, error)
 	CreateOrder(ctx context.Context, order *domain_model.Order) error
 	DeleteOrder(ctx context.Context, orderID uint64) error
 }
@@ -56,17 +55,6 @@ func (c *OrderRepoCacheImpl) GetOrder(ctx context.Context, orderID uint64) (*dom
 
 func (c *OrderRepoCacheImpl) GetDetailedPurchasedItems(ctx context.Context, purchasedItems *[]domain_model.PurchasedItem) (*[]domain_model.DetailedPurchasedItem, error) {
 	return c.orderRepo.GetDetailedPurchasedItems(ctx, purchasedItems)
-}
-
-func (c *OrderRepoCacheImpl) ExistOrder(ctx context.Context, orderID uint64) (bool, error) {
-	order := &domain_model.Order{}
-	key := pkg.Join("order:", strconv.FormatUint(orderID, 10))
-
-	ok, err := c.rc.Get(ctx, key, order)
-	if ok && err == nil {
-		return true, nil
-	}
-	return c.orderRepo.ExistOrder(ctx, orderID)
 }
 
 func (c *OrderRepoCacheImpl) CreateOrder(ctx context.Context, order *domain_model.Order) error {

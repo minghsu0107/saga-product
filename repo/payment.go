@@ -13,7 +13,6 @@ import (
 // PaymentRepository interface
 type PaymentRepository interface {
 	GetPayment(ctx context.Context, paymentID uint64) (*domain_model.Payment, error)
-	ExistPayment(ctx context.Context, paymentID uint64) (bool, error)
 	CreatePayment(ctx context.Context, payment *domain_model.Payment) error
 	DeletePayment(ctx context.Context, paymentID uint64) error
 }
@@ -45,18 +44,6 @@ func (repo *PaymentRepositoryImpl) GetPayment(ctx context.Context, paymentID uin
 		CurrencyCode: payment.CurrencyCode,
 		Amount:       payment.Amount,
 	}, nil
-}
-
-// ExistPayment checks whether a payment exists
-func (repo *PaymentRepositoryImpl) ExistPayment(ctx context.Context, paymentID uint64) (bool, error) {
-	var payment model.Payment
-	if err := repo.db.Model(&model.Payment{}).Select("id").Where("id = ?", paymentID).First(&payment).WithContext(ctx).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
 }
 
 // CreatePayment creates a payment

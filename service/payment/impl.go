@@ -65,15 +65,7 @@ func (svc *SagaPaymentServiceImpl) CreatePayment(ctx context.Context, payment *m
 
 // RollbackPayment method
 func (svc *SagaPaymentServiceImpl) RollbackPayment(ctx context.Context, paymentID uint64) error {
-	exist, err := svc.paymentRepo.ExistPayment(ctx, paymentID)
-	if err != nil {
-		svc.logger.Error(err.Error())
-		return err
-	}
-	if !exist {
-		return nil
-	}
-	err = svc.paymentRepo.DeletePayment(ctx, paymentID)
+	err := svc.paymentRepo.DeletePayment(ctx, paymentID)
 	if err != nil {
 		svc.logger.Error(err.Error())
 		return err

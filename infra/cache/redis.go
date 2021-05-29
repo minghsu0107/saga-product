@@ -25,6 +25,7 @@ var (
 // RedisCache is the interface of redis cache
 type RedisCache interface {
 	Get(ctx context.Context, key string, dst interface{}) (bool, error)
+	Exist(ctx context.Context, key string) (bool, error)
 	Set(ctx context.Context, key string, val interface{}) error
 	HMGet(ctx context.Context, key string, dst interface{}, fields ...string) error
 	HSet(ctx context.Context, key string, values map[string]interface{}) error
@@ -142,6 +143,16 @@ func (rc *RedisCacheImpl) Get(ctx context.Context, key string, dst interface{}) 
 		json.Unmarshal([]byte(val), dst)
 	}
 	return true, nil
+}
+
+// Exist checks whether a key exists
+func (rc *RedisCacheImpl) Exist(ctx context.Context, key string) (bool, error) {
+	numExistKey, err := rc.client.Exists(ctx, key).Result()
+	if err != nil {
+		return false, err
+	}
+	exist := (numExistKey == 1)
+	return exist, nil
 }
 
 // Set sets a key-value pair

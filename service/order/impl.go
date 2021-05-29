@@ -77,15 +77,7 @@ func (svc *SagaOrderServiceImpl) CreateOrder(ctx context.Context, order *model.O
 
 // RollbackOrder method
 func (svc *SagaOrderServiceImpl) RollbackOrder(ctx context.Context, orderID uint64) error {
-	exist, err := svc.orderRepo.ExistOrder(ctx, orderID)
-	if err != nil {
-		svc.logger.Error(err.Error())
-		return err
-	}
-	if !exist {
-		return nil
-	}
-	err = svc.orderRepo.DeleteOrder(ctx, orderID)
+	err := svc.orderRepo.DeleteOrder(ctx, orderID)
 	if err != nil {
 		svc.logger.Error(err.Error())
 		return err

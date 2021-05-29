@@ -24,7 +24,6 @@ import (
 type OrderRepository interface {
 	GetOrder(ctx context.Context, orderID uint64) (*domain_model.Order, error)
 	GetDetailedPurchasedItems(ctx context.Context, purchasedItems *[]domain_model.PurchasedItem) (*[]domain_model.DetailedPurchasedItem, error)
-	ExistOrder(ctx context.Context, orderID uint64) (bool, error)
 	CreateOrder(ctx context.Context, order *domain_model.Order) error
 	DeleteOrder(ctx context.Context, orderID uint64) error
 }
@@ -116,18 +115,6 @@ func (repo *OrderRepositoryImpl) GetDetailedPurchasedItems(ctx context.Context, 
 		})
 	}
 	return &detailedPurchasedItems, nil
-}
-
-// ExistOrder checks whether an order exists
-func (repo *OrderRepositoryImpl) ExistOrder(ctx context.Context, orderID uint64) (bool, error) {
-	var order model.Order
-	if err := repo.db.Model(&model.Order{}).Select("id").Where("id = ?", orderID).First(&order).WithContext(ctx).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
 }
 
 // CreateOrder creates an order

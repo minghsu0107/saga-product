@@ -224,10 +224,6 @@ var _ = Describe("test repo", func() {
 			Expect(err).To(BeNil())
 		})
 		var _ = It("should retrieve order", func() {
-			exist, err := orderRepo.ExistOrder(context.Background(), orderID)
-			Expect(err).To(BeNil())
-			Expect(exist).To(BeTrue())
-
 			retrievedOrder, err := orderRepo.GetOrder(context.Background(), orderID)
 			Expect(err).To(BeNil())
 			Expect(retrievedOrder).To(Equal(&order))
@@ -253,10 +249,6 @@ var _ = Describe("test repo", func() {
 			Expect(err).To(BeNil())
 		})
 		var _ = It("should retrieve payment", func() {
-			exist, err := paymentRepo.ExistPayment(context.Background(), paymentID)
-			Expect(err).To(BeNil())
-			Expect(exist).To(BeTrue())
-
 			retrievedPayment, err := paymentRepo.GetPayment(context.Background(), paymentID)
 			Expect(err).To(BeNil())
 			Expect(retrievedPayment).To(Equal(&payment))

@@ -15,7 +15,6 @@ import (
 // PaymentRepoCache interface
 type PaymentRepoCache interface {
 	GetPayment(ctx context.Context, paymentID uint64) (*domain_model.Payment, error)
-	ExistPayment(ctx context.Context, paymentID uint64) (bool, error)
 	CreatePayment(ctx context.Context, payment *domain_model.Payment) error
 	DeletePayment(ctx context.Context, paymentID uint64) error
 }
@@ -51,17 +50,6 @@ func (c *PaymentRepoCacheImpl) GetPayment(ctx context.Context, paymentID uint64)
 	}
 	c.logError(c.rc.Set(ctx, key, payment))
 	return payment, nil
-}
-
-func (c *PaymentRepoCacheImpl) ExistPayment(ctx context.Context, paymentID uint64) (bool, error) {
-	payment := &domain_model.Payment{}
-	key := pkg.Join("payment:", strconv.FormatUint(paymentID, 10))
-
-	ok, err := c.rc.Get(ctx, key, payment)
-	if ok && err == nil {
-		return true, nil
-	}
-	return c.paymentRepo.ExistPayment(ctx, paymentID)
 }
 
 func (c *PaymentRepoCacheImpl) CreatePayment(ctx context.Context, payment *domain_model.Payment) error {
