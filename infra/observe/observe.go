@@ -3,7 +3,6 @@ package pkg
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"contrib.go.opencensus.io/exporter/ocagent"
 	conf "github.com/minghsu0107/saga-product/config"
@@ -38,7 +37,6 @@ func (injector *ObservibilityInjector) Register(errs chan error) {
 	if injector.ocagentHost != "" {
 		oce, err := ocagent.NewExporter(
 			ocagent.WithInsecure(),
-			ocagent.WithReconnectionPeriod(5*time.Second),
 			ocagent.WithAddress(injector.ocagentHost),
 			ocagent.WithServiceName(injector.app))
 		if err != nil {
