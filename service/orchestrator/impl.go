@@ -37,8 +37,8 @@ func NewOrchestratorService(config *conf.Config, sf pkg.IDGenerator, publisher m
 }
 
 // StartTransaction starts the first transaction, which is UpdateProductInventory
-func (svc *OrchestratorServiceImpl) StartTransaction(ctx context.Context, purchase *model.Purchase, correlationID string) error {
-	childCtx, span := trace.StartSpan(ctx, "event.StartTransaction")
+func (svc *OrchestratorServiceImpl) StartTransaction(sc trace.SpanContext, purchase *model.Purchase, correlationID string) error {
+	childCtx, span := trace.StartSpanWithRemoteParent(context.Background(), "event.StartTransaction", sc)
 	defer span.End()
 
 	sonyflakeID, err := svc.sf.NextID()
@@ -67,8 +67,8 @@ func (svc *OrchestratorServiceImpl) StartTransaction(ctx context.Context, purcha
 }
 
 // HandleReply handles reply events
-func (svc *OrchestratorServiceImpl) HandleReply(ctx context.Context, msg *message.Message, correlationID string) error {
-	childCtx, span := trace.StartSpan(ctx, "event.HandleReply")
+func (svc *OrchestratorServiceImpl) HandleReply(sc trace.SpanContext, msg *message.Message, correlationID string) error {
+	childCtx, span := trace.StartSpanWithRemoteParent(context.Background(), "event.HandleReply", sc)
 	defer span.End()
 
 	handler := msg.Metadata.Get(conf.HandlerHeader)
@@ -334,7 +334,12 @@ func (svc *OrchestratorServiceImpl) publishPurchaseResult(ctx context.Context, p
 }
 
 func (svc *OrchestratorServiceImpl) publishMessage(ctx context.Context, topic string, msg *message.Message) error {
-	msg.SetContext(ctx)
+	span := trace.FromContext(ctx)
+	spanContext, err := json.Marshal(span.SpanContext())
+	if err != nil {
+		return err
+	}
+	msg.Metadata.Set(conf.SpanContextKey, string(spanContext))
 	return svc.publisher.Publish(topic, msg)
 }
 

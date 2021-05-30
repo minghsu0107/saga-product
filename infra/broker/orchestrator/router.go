@@ -2,12 +2,14 @@ package orchestrator
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 	conf "github.com/minghsu0107/saga-product/config"
 	"github.com/minghsu0107/saga-product/infra/broker"
 	"github.com/minghsu0107/saga-product/service/orchestrator"
+	"go.opencensus.io/trace"
 )
 
 // OrchestratorHandler handler
@@ -22,12 +24,21 @@ func (h *OrchestratorHandler) StartTransaction(msg *message.Message) error {
 		return err
 	}
 	correlationID := msg.Metadata.Get(middleware.CorrelationIDMetadataKey)
-	return h.svc.StartTransaction(msg.Context(), purchase, correlationID)
+	var sc trace.SpanContext
+	if err := json.Unmarshal([]byte(msg.Metadata.Get(conf.SpanContextKey)), &sc); err != nil {
+		return err
+	}
+	return h.svc.StartTransaction(sc, purchase, correlationID)
 }
 
 func (h *OrchestratorHandler) HandleReply(msg *message.Message) error {
 	correlationID := msg.Metadata.Get(middleware.CorrelationIDMetadataKey)
-	return h.svc.HandleReply(msg.Context(), msg, correlationID)
+	var sc trace.SpanContext
+	json.Unmarshal([]byte(msg.Metadata.Get(conf.SpanContextKey)), &sc)
+	if err := json.Unmarshal([]byte(msg.Metadata.Get(conf.SpanContextKey)), &sc); err != nil {
+		return err
+	}
+	return h.svc.HandleReply(sc, msg, correlationID)
 }
 
 // OrchestratorEventRouter implementation

@@ -22,7 +22,11 @@ type SagaPaymentHandler struct {
 
 // CreatePayment handler
 func (h *SagaPaymentHandler) CreatePayment(msg *message.Message) ([]*message.Message, error) {
-	childCtx, span := trace.StartSpan(msg.Context(), "event.CreatePayment")
+	var sc trace.SpanContext
+	if err := json.Unmarshal([]byte(msg.Metadata.Get(conf.SpanContextKey)), &sc); err != nil {
+		return nil, err
+	}
+	_, span := trace.StartSpanWithRemoteParent(context.Background(), "event.CreatePayment", sc)
 	defer span.End()
 
 	purchase, pbPurchase, err := broker.DecodeCreatePurchaseCmd(msg.Payload)
@@ -49,14 +53,20 @@ func (h *SagaPaymentHandler) CreatePayment(msg *message.Message) ([]*message.Mes
 	}
 	var replyMsgs []*message.Message
 	replyMsg := message.NewMessage(watermill.NewUUID(), payload)
-	replyMsg.SetContext(childCtx)
+	if err := broker.SetSpanContext(replyMsg, span); err != nil {
+		return nil, err
+	}
 	replyMsg.Metadata.Set(conf.HandlerHeader, conf.CreatePaymentHandler)
 	replyMsgs = append(replyMsgs, replyMsg)
 	return replyMsgs, nil
 }
 
 func (h *SagaPaymentHandler) RollbackPayment(msg *message.Message) ([]*message.Message, error) {
-	childCtx, span := trace.StartSpan(msg.Context(), "event.RollbackPayment")
+	var sc trace.SpanContext
+	if err := json.Unmarshal([]byte(msg.Metadata.Get(conf.SpanContextKey)), &sc); err != nil {
+		return nil, err
+	}
+	_, span := trace.StartSpanWithRemoteParent(context.Background(), "event.RollbackPayment", sc)
 	defer span.End()
 
 	var cmd pb.RollbackCmd
@@ -84,7 +94,9 @@ func (h *SagaPaymentHandler) RollbackPayment(msg *message.Message) ([]*message.M
 	}
 	var replyMsgs []*message.Message
 	replyMsg := message.NewMessage(watermill.NewUUID(), payload)
-	replyMsg.SetContext(childCtx)
+	if err := broker.SetSpanContext(replyMsg, span); err != nil {
+		return nil, err
+	}
 	replyMsg.Metadata.Set(conf.HandlerHeader, conf.RollbackPaymentHandler)
 	replyMsgs = append(replyMsgs, replyMsg)
 	return replyMsgs, nil

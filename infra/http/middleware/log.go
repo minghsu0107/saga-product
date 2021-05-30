@@ -8,6 +8,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	TraceIDHeader = "X-B3-TraceId"
+)
+
 // LogMiddleware is the logging middleware
 func LogMiddleware(logger *log.Entry) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -20,6 +24,8 @@ func LogMiddleware(logger *log.Entry) gin.HandlerFunc {
 		// Stop timer
 		duration := GetDurationInMillseconds(start)
 
+		traceID := c.Request.Header.Get(TraceIDHeader)
+
 		entry := logger.WithFields(log.Fields{
 			"type":         "router",
 			"client_ip":    GetClientIP(c),
@@ -28,6 +34,7 @@ func LogMiddleware(logger *log.Entry) gin.HandlerFunc {
 			"path":         c.Request.RequestURI,
 			"status":       c.Writer.Status(),
 			"referrer":     c.Request.Referer(),
+			"traceID":      traceID,
 		})
 
 		if c.Writer.Status() >= 500 {

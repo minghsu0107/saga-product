@@ -65,6 +65,7 @@ func InitializeServer(ocAgentHost string, logrusEntry *log.Entry) *grpc.Server {
 			grpc_prometheus.UnaryServerInterceptor,
 			grpc_ctxtags.UnaryServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
 			grpc_logrus.UnaryServerInterceptor(logrusEntry, grpcOpts...),
+			LogTraceUnary(),
 			grpc_recovery.UnaryServerInterceptor(recoveryOpts...),
 		)),
 	)

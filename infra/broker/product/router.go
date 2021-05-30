@@ -23,7 +23,11 @@ type SagaProductHandler struct {
 
 // UpdateProductInventory handler
 func (h *SagaProductHandler) UpdateProductInventory(msg *message.Message) ([]*message.Message, error) {
-	childCtx, span := trace.StartSpan(msg.Context(), "event.UpdateProductInventory")
+	var sc trace.SpanContext
+	if err := json.Unmarshal([]byte(msg.Metadata.Get(conf.SpanContextKey)), &sc); err != nil {
+		return nil, err
+	}
+	_, span := trace.StartSpanWithRemoteParent(context.Background(), "event.UpdateProductInventory", sc)
 	defer span.End()
 
 	purchase, pbPurchase, err := broker.DecodeCreatePurchaseCmd(msg.Payload)
@@ -50,7 +54,9 @@ func (h *SagaProductHandler) UpdateProductInventory(msg *message.Message) ([]*me
 	}
 	var replyMsgs []*message.Message
 	replyMsg := message.NewMessage(watermill.NewUUID(), payload)
-	replyMsg.SetContext(childCtx)
+	if err := broker.SetSpanContext(replyMsg, span); err != nil {
+		return nil, err
+	}
 	replyMsg.Metadata.Set(conf.HandlerHeader, conf.UpdateProductInventoryHandler)
 	replyMsgs = append(replyMsgs, replyMsg)
 	return replyMsgs, nil
@@ -58,7 +64,11 @@ func (h *SagaProductHandler) UpdateProductInventory(msg *message.Message) ([]*me
 
 // RollbackProductInventory handler
 func (h *SagaProductHandler) RollbackProductInventory(msg *message.Message) ([]*message.Message, error) {
-	childCtx, span := trace.StartSpan(msg.Context(), "event.RollbackProductInventory")
+	var sc trace.SpanContext
+	if err := json.Unmarshal([]byte(msg.Metadata.Get(conf.SpanContextKey)), &sc); err != nil {
+		return nil, err
+	}
+	_, span := trace.StartSpanWithRemoteParent(context.Background(), "event.RollbackProductInventory", sc)
 	defer span.End()
 
 	var cmd pb.RollbackCmd
@@ -86,7 +96,9 @@ func (h *SagaProductHandler) RollbackProductInventory(msg *message.Message) ([]*
 	}
 	var replyMsgs []*message.Message
 	replyMsg := message.NewMessage(watermill.NewUUID(), payload)
-	replyMsg.SetContext(childCtx)
+	if err := broker.SetSpanContext(replyMsg, span); err != nil {
+		return nil, err
+	}
 	replyMsg.Metadata.Set(conf.HandlerHeader, conf.RollbackProductInventoryHandler)
 	replyMsgs = append(replyMsgs, replyMsg)
 	return replyMsgs, nil

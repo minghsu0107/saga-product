@@ -9,6 +9,9 @@ var (
 	// CustomerKey is the key name for retrieving jwt-decoded customer id in a http request context
 	CustomerKey HTTPContextKey = "customer_key"
 
+	// SpanContextKey is the message metadata key of span context passed accross process boundaries
+	SpanContextKey = "span_ctx_key"
+
 	// HandlerHeader identifies a handler in the ReplyTopic
 	HandlerHeader = "Handler"
 

@@ -22,7 +22,11 @@ type SagaOrderHandler struct {
 
 // CreateOrder handler
 func (h *SagaOrderHandler) CreateOrder(msg *message.Message) ([]*message.Message, error) {
-	childCtx, span := trace.StartSpan(msg.Context(), "event.CreateOrder")
+	var sc trace.SpanContext
+	if err := json.Unmarshal([]byte(msg.Metadata.Get(conf.SpanContextKey)), &sc); err != nil {
+		return nil, err
+	}
+	_, span := trace.StartSpanWithRemoteParent(context.Background(), "event.CreateOrder", sc)
 	defer span.End()
 
 	purchase, pbPurchase, err := broker.DecodeCreatePurchaseCmd(msg.Payload)
@@ -49,14 +53,20 @@ func (h *SagaOrderHandler) CreateOrder(msg *message.Message) ([]*message.Message
 	}
 	var replyMsgs []*message.Message
 	replyMsg := message.NewMessage(watermill.NewUUID(), payload)
-	replyMsg.SetContext(childCtx)
+	if err := broker.SetSpanContext(replyMsg, span); err != nil {
+		return nil, err
+	}
 	replyMsg.Metadata.Set(conf.HandlerHeader, conf.CreateOrderHandler)
 	replyMsgs = append(replyMsgs, replyMsg)
 	return replyMsgs, nil
 }
 
 func (h *SagaOrderHandler) RollbackOrder(msg *message.Message) ([]*message.Message, error) {
-	childCtx, span := trace.StartSpan(msg.Context(), "event.RollbackOrder")
+	var sc trace.SpanContext
+	if err := json.Unmarshal([]byte(msg.Metadata.Get(conf.SpanContextKey)), &sc); err != nil {
+		return nil, err
+	}
+	_, span := trace.StartSpanWithRemoteParent(context.Background(), "event.RollbackOrder", sc)
 	defer span.End()
 
 	var cmd pb.RollbackCmd
@@ -84,7 +94,9 @@ func (h *SagaOrderHandler) RollbackOrder(msg *message.Message) ([]*message.Messa
 	}
 	var replyMsgs []*message.Message
 	replyMsg := message.NewMessage(watermill.NewUUID(), payload)
-	replyMsg.SetContext(childCtx)
+	if err := broker.SetSpanContext(replyMsg, span); err != nil {
+		return nil, err
+	}
 	replyMsg.Metadata.Set(conf.HandlerHeader, conf.RollbackOrderHandler)
 	replyMsgs = append(replyMsgs, replyMsg)
 	return replyMsgs, nil

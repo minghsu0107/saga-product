@@ -5,7 +5,9 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	pb "github.com/minghsu0107/saga-pb"
+	conf "github.com/minghsu0107/saga-product/config"
 	"github.com/minghsu0107/saga-product/domain/model"
+	"go.opencensus.io/trace"
 )
 
 func DecodeCreatePurchaseCmd(payload message.Payload) (*model.Purchase, *pb.Purchase, error) {
@@ -38,4 +40,14 @@ func DecodeCreatePurchaseCmd(payload message.Payload) (*model.Purchase, *pb.Purc
 			Amount:       cmd.Purchase.Payment.Amount,
 		},
 	}, cmd.Purchase, nil
+}
+
+// SetSpanContext set span context to the message
+func SetSpanContext(msg *message.Message, span *trace.Span) error {
+	spanContext, err := json.Marshal(span.SpanContext())
+	if err != nil {
+		return err
+	}
+	msg.Metadata.Set(conf.SpanContextKey, string(spanContext))
+	return nil
 }
