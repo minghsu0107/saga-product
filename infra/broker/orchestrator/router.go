@@ -22,12 +22,12 @@ func (h *OrchestratorHandler) StartTransaction(msg *message.Message) error {
 		return err
 	}
 	correlationID := msg.Metadata.Get(middleware.CorrelationIDMetadataKey)
-	return h.svc.StartTransaction(context.Background(), purchase, correlationID)
+	return h.svc.StartTransaction(msg.Context(), purchase, correlationID)
 }
 
 func (h *OrchestratorHandler) HandleReply(msg *message.Message) error {
 	correlationID := msg.Metadata.Get(middleware.CorrelationIDMetadataKey)
-	return h.svc.HandleReply(context.Background(), msg, correlationID)
+	return h.svc.HandleReply(msg.Context(), msg, correlationID)
 }
 
 // OrchestratorEventRouter implementation

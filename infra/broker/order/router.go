@@ -12,6 +12,7 @@ import (
 	"github.com/minghsu0107/saga-product/infra/broker"
 	"github.com/minghsu0107/saga-product/pkg"
 	"github.com/minghsu0107/saga-product/service/order"
+	"go.opencensus.io/trace"
 )
 
 // SagaOrderHandler handler
@@ -21,6 +22,9 @@ type SagaOrderHandler struct {
 
 // CreateOrder handler
 func (h *SagaOrderHandler) CreateOrder(msg *message.Message) ([]*message.Message, error) {
+	childCtx, span := trace.StartSpan(msg.Context(), "event.CreateOrder")
+	defer span.End()
+
 	purchase, pbPurchase, err := broker.DecodeCreatePurchaseCmd(msg.Payload)
 	if err != nil {
 		return nil, err
@@ -45,12 +49,16 @@ func (h *SagaOrderHandler) CreateOrder(msg *message.Message) ([]*message.Message
 	}
 	var replyMsgs []*message.Message
 	replyMsg := message.NewMessage(watermill.NewUUID(), payload)
+	replyMsg.SetContext(childCtx)
 	replyMsg.Metadata.Set(conf.HandlerHeader, conf.CreateOrderHandler)
 	replyMsgs = append(replyMsgs, replyMsg)
 	return replyMsgs, nil
 }
 
 func (h *SagaOrderHandler) RollbackOrder(msg *message.Message) ([]*message.Message, error) {
+	childCtx, span := trace.StartSpan(msg.Context(), "event.RollbackOrder")
+	defer span.End()
+
 	var cmd pb.RollbackCmd
 	if err := json.Unmarshal(msg.Payload, &cmd); err != nil {
 		return nil, err
@@ -76,6 +84,7 @@ func (h *SagaOrderHandler) RollbackOrder(msg *message.Message) ([]*message.Messa
 	}
 	var replyMsgs []*message.Message
 	replyMsg := message.NewMessage(watermill.NewUUID(), payload)
+	replyMsg.SetContext(childCtx)
 	replyMsg.Metadata.Set(conf.HandlerHeader, conf.RollbackOrderHandler)
 	replyMsgs = append(replyMsgs, replyMsg)
 	return replyMsgs, nil

@@ -15,6 +15,7 @@ import (
 	"github.com/minghsu0107/saga-product/domain/model"
 	"github.com/minghsu0107/saga-product/pkg"
 	log "github.com/sirupsen/logrus"
+	"go.opencensus.io/trace"
 )
 
 // OrchestratorServiceImpl implementation
@@ -37,6 +38,9 @@ func NewOrchestratorService(config *conf.Config, sf pkg.IDGenerator, publisher m
 
 // StartTransaction starts the first transaction, which is UpdateProductInventory
 func (svc *OrchestratorServiceImpl) StartTransaction(ctx context.Context, purchase *model.Purchase, correlationID string) error {
+	childCtx, span := trace.StartSpan(ctx, "event.StartTransaction")
+	defer span.End()
+
 	sonyflakeID, err := svc.sf.NextID()
 	if err != nil {
 		return err
@@ -52,18 +56,21 @@ func (svc *OrchestratorServiceImpl) StartTransaction(ctx context.Context, purcha
 	}
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	middleware.SetCorrelationID(correlationID, msg)
-	svc.publishPurchaseResult(ctx, &event.PurchaseResult{
+	svc.publishPurchaseResult(childCtx, &event.PurchaseResult{
 		CustomerID: purchase.Order.CustomerID,
 		PurchaseID: purchase.ID,
 		Step:       event.StepUpdateProductInventory,
 		Status:     event.StatusExecute,
 	}, correlationID)
 	svc.logger.Infof("update product inventory %v", purchase.ID)
-	return svc.publishMessage(ctx, conf.UpdateProductInventoryTopic, msg)
+	return svc.publishMessage(childCtx, conf.UpdateProductInventoryTopic, msg)
 }
 
 // HandleReply handles reply events
 func (svc *OrchestratorServiceImpl) HandleReply(ctx context.Context, msg *message.Message, correlationID string) error {
+	childCtx, span := trace.StartSpan(ctx, "event.HandleReply")
+	defer span.End()
+
 	handler := msg.Metadata.Get(conf.HandlerHeader)
 	switch handler {
 	case conf.UpdateProductInventoryHandler:
@@ -72,39 +79,39 @@ func (svc *OrchestratorServiceImpl) HandleReply(ctx context.Context, msg *messag
 			return err
 		}
 		if resp.Success {
-			return svc.createOrder(ctx, resp.Purchase, correlationID)
+			return svc.createOrder(childCtx, resp.Purchase, correlationID)
 		}
 		svc.logger.Error(resp.Error)
-		return svc.rollbackProductInventory(ctx, resp.Purchase.Order.CustomerID, resp.Purchase.ID, correlationID)
+		return svc.rollbackProductInventory(childCtx, resp.Purchase.Order.CustomerID, resp.Purchase.ID, correlationID)
 	case conf.RollbackProductInventoryHandler:
 		resp, err := decodeRollbackResponse(msg.Payload)
 		if err != nil {
 			return err
 		}
-		svc.publishRollbackResult(ctx, event.StepUpdateProductInventory, resp, correlationID)
+		svc.publishRollbackResult(childCtx, event.StepUpdateProductInventory, resp, correlationID)
 	case conf.CreateOrderHandler:
 		resp, err := decodeCreatePurchaseResponse(msg.Payload)
 		if err != nil {
 			return err
 		}
 		if resp.Success {
-			return svc.createPayment(ctx, resp.Purchase, correlationID)
+			return svc.createPayment(childCtx, resp.Purchase, correlationID)
 		}
 		svc.logger.Error(resp.Error)
-		return svc.rollbackFromOrder(ctx, resp.Purchase.Order.CustomerID, resp.Purchase.ID, correlationID)
+		return svc.rollbackFromOrder(childCtx, resp.Purchase.Order.CustomerID, resp.Purchase.ID, correlationID)
 	case conf.RollbackOrderHandler:
 		resp, err := decodeRollbackResponse(msg.Payload)
 		if err != nil {
 			return err
 		}
-		svc.publishRollbackResult(ctx, event.StepCreateOrder, resp, correlationID)
+		svc.publishRollbackResult(childCtx, event.StepCreateOrder, resp, correlationID)
 	case conf.CreatePaymentHandler:
 		resp, err := decodeCreatePurchaseResponse(msg.Payload)
 		if err != nil {
 			return err
 		}
 		if resp.Success {
-			svc.publishPurchaseResult(ctx, &event.PurchaseResult{
+			svc.publishPurchaseResult(childCtx, &event.PurchaseResult{
 				CustomerID: resp.Purchase.Order.CustomerID,
 				PurchaseID: resp.Purchase.ID,
 				Step:       event.StepCreatePayment,
@@ -114,13 +121,13 @@ func (svc *OrchestratorServiceImpl) HandleReply(ctx context.Context, msg *messag
 			return nil
 		}
 		svc.logger.Error(resp.Error)
-		return svc.rollbackFromPayment(ctx, resp.Purchase.Order.CustomerID, resp.Purchase.ID, correlationID)
+		return svc.rollbackFromPayment(childCtx, resp.Purchase.Order.CustomerID, resp.Purchase.ID, correlationID)
 	case conf.RollbackPaymentHandler:
 		resp, err := decodeRollbackResponse(msg.Payload)
 		if err != nil {
 			return err
 		}
-		svc.publishRollbackResult(ctx, event.StepCreatePayment, resp, correlationID)
+		svc.publishRollbackResult(childCtx, event.StepCreatePayment, resp, correlationID)
 	default:
 		return fmt.Errorf("unkown handler: %s", handler)
 	}
@@ -327,6 +334,7 @@ func (svc *OrchestratorServiceImpl) publishPurchaseResult(ctx context.Context, p
 }
 
 func (svc *OrchestratorServiceImpl) publishMessage(ctx context.Context, topic string, msg *message.Message) error {
+	msg.SetContext(ctx)
 	return svc.publisher.Publish(topic, msg)
 }
 

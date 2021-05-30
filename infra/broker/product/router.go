@@ -13,6 +13,7 @@ import (
 	"github.com/minghsu0107/saga-product/infra/broker"
 	"github.com/minghsu0107/saga-product/pkg"
 	"github.com/minghsu0107/saga-product/service/product"
+	"go.opencensus.io/trace"
 )
 
 // SagaProductHandler handler
@@ -22,6 +23,9 @@ type SagaProductHandler struct {
 
 // UpdateProductInventory handler
 func (h *SagaProductHandler) UpdateProductInventory(msg *message.Message) ([]*message.Message, error) {
+	childCtx, span := trace.StartSpan(msg.Context(), "event.UpdateProductInventory")
+	defer span.End()
+
 	purchase, pbPurchase, err := broker.DecodeCreatePurchaseCmd(msg.Payload)
 	if err != nil {
 		return nil, err
@@ -46,6 +50,7 @@ func (h *SagaProductHandler) UpdateProductInventory(msg *message.Message) ([]*me
 	}
 	var replyMsgs []*message.Message
 	replyMsg := message.NewMessage(watermill.NewUUID(), payload)
+	replyMsg.SetContext(childCtx)
 	replyMsg.Metadata.Set(conf.HandlerHeader, conf.UpdateProductInventoryHandler)
 	replyMsgs = append(replyMsgs, replyMsg)
 	return replyMsgs, nil
@@ -53,6 +58,9 @@ func (h *SagaProductHandler) UpdateProductInventory(msg *message.Message) ([]*me
 
 // RollbackProductInventory handler
 func (h *SagaProductHandler) RollbackProductInventory(msg *message.Message) ([]*message.Message, error) {
+	childCtx, span := trace.StartSpan(msg.Context(), "event.RollbackProductInventory")
+	defer span.End()
+
 	var cmd pb.RollbackCmd
 	if err := json.Unmarshal(msg.Payload, &cmd); err != nil {
 		return nil, err
@@ -78,6 +86,7 @@ func (h *SagaProductHandler) RollbackProductInventory(msg *message.Message) ([]*
 	}
 	var replyMsgs []*message.Message
 	replyMsg := message.NewMessage(watermill.NewUUID(), payload)
+	replyMsg.SetContext(childCtx)
 	replyMsg.Metadata.Set(conf.HandlerHeader, conf.RollbackProductInventoryHandler)
 	replyMsgs = append(replyMsgs, replyMsg)
 	return replyMsgs, nil
