@@ -16,6 +16,7 @@ import (
 	"github.com/minghsu0107/saga-product/pkg"
 	log "github.com/sirupsen/logrus"
 	"go.opencensus.io/trace"
+	"go.opencensus.io/trace/propagation"
 )
 
 // OrchestratorServiceImpl implementation
@@ -335,11 +336,7 @@ func (svc *OrchestratorServiceImpl) publishPurchaseResult(ctx context.Context, p
 
 func (svc *OrchestratorServiceImpl) publishMessage(ctx context.Context, topic string, msg *message.Message) error {
 	span := trace.FromContext(ctx)
-	spanContext, err := json.Marshal(span.SpanContext())
-	if err != nil {
-		return err
-	}
-	msg.Metadata.Set(conf.SpanContextKey, string(spanContext))
+	msg.Metadata.Set(conf.SpanContextKey, string(propagation.Binary(span.SpanContext())))
 	return svc.publisher.Publish(topic, msg)
 }
 

@@ -14,6 +14,7 @@ import (
 	"github.com/minghsu0107/saga-product/pkg"
 	"github.com/minghsu0107/saga-product/service/product"
 	"go.opencensus.io/trace"
+	"go.opencensus.io/trace/propagation"
 )
 
 // SagaProductHandler handler
@@ -23,10 +24,7 @@ type SagaProductHandler struct {
 
 // UpdateProductInventory handler
 func (h *SagaProductHandler) UpdateProductInventory(msg *message.Message) ([]*message.Message, error) {
-	var sc trace.SpanContext
-	if err := json.Unmarshal([]byte(msg.Metadata.Get(conf.SpanContextKey)), &sc); err != nil {
-		return nil, err
-	}
+	sc, _ := propagation.FromBinary([]byte(msg.Metadata.Get(conf.SpanContextKey)))
 	_, span := trace.StartSpanWithRemoteParent(context.Background(), "event.UpdateProductInventory", sc)
 	defer span.End()
 
@@ -54,9 +52,7 @@ func (h *SagaProductHandler) UpdateProductInventory(msg *message.Message) ([]*me
 	}
 	var replyMsgs []*message.Message
 	replyMsg := message.NewMessage(watermill.NewUUID(), payload)
-	if err := broker.SetSpanContext(replyMsg, span); err != nil {
-		return nil, err
-	}
+	broker.SetSpanContext(replyMsg, span)
 	replyMsg.Metadata.Set(conf.HandlerHeader, conf.UpdateProductInventoryHandler)
 	replyMsgs = append(replyMsgs, replyMsg)
 	return replyMsgs, nil
@@ -64,10 +60,7 @@ func (h *SagaProductHandler) UpdateProductInventory(msg *message.Message) ([]*me
 
 // RollbackProductInventory handler
 func (h *SagaProductHandler) RollbackProductInventory(msg *message.Message) ([]*message.Message, error) {
-	var sc trace.SpanContext
-	if err := json.Unmarshal([]byte(msg.Metadata.Get(conf.SpanContextKey)), &sc); err != nil {
-		return nil, err
-	}
+	sc, _ := propagation.FromBinary([]byte(msg.Metadata.Get(conf.SpanContextKey)))
 	_, span := trace.StartSpanWithRemoteParent(context.Background(), "event.RollbackProductInventory", sc)
 	defer span.End()
 
@@ -96,9 +89,7 @@ func (h *SagaProductHandler) RollbackProductInventory(msg *message.Message) ([]*
 	}
 	var replyMsgs []*message.Message
 	replyMsg := message.NewMessage(watermill.NewUUID(), payload)
-	if err := broker.SetSpanContext(replyMsg, span); err != nil {
-		return nil, err
-	}
+	broker.SetSpanContext(replyMsg, span)
 	replyMsg.Metadata.Set(conf.HandlerHeader, conf.RollbackProductInventoryHandler)
 	replyMsgs = append(replyMsgs, replyMsg)
 	return replyMsgs, nil

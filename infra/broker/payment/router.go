@@ -13,6 +13,7 @@ import (
 	"github.com/minghsu0107/saga-product/pkg"
 	"github.com/minghsu0107/saga-product/service/payment"
 	"go.opencensus.io/trace"
+	"go.opencensus.io/trace/propagation"
 )
 
 // SagaPaymentHandler handler
@@ -22,10 +23,7 @@ type SagaPaymentHandler struct {
 
 // CreatePayment handler
 func (h *SagaPaymentHandler) CreatePayment(msg *message.Message) ([]*message.Message, error) {
-	var sc trace.SpanContext
-	if err := json.Unmarshal([]byte(msg.Metadata.Get(conf.SpanContextKey)), &sc); err != nil {
-		return nil, err
-	}
+	sc, _ := propagation.FromBinary([]byte(msg.Metadata.Get(conf.SpanContextKey)))
 	_, span := trace.StartSpanWithRemoteParent(context.Background(), "event.CreatePayment", sc)
 	defer span.End()
 
@@ -53,19 +51,14 @@ func (h *SagaPaymentHandler) CreatePayment(msg *message.Message) ([]*message.Mes
 	}
 	var replyMsgs []*message.Message
 	replyMsg := message.NewMessage(watermill.NewUUID(), payload)
-	if err := broker.SetSpanContext(replyMsg, span); err != nil {
-		return nil, err
-	}
+	broker.SetSpanContext(replyMsg, span)
 	replyMsg.Metadata.Set(conf.HandlerHeader, conf.CreatePaymentHandler)
 	replyMsgs = append(replyMsgs, replyMsg)
 	return replyMsgs, nil
 }
 
 func (h *SagaPaymentHandler) RollbackPayment(msg *message.Message) ([]*message.Message, error) {
-	var sc trace.SpanContext
-	if err := json.Unmarshal([]byte(msg.Metadata.Get(conf.SpanContextKey)), &sc); err != nil {
-		return nil, err
-	}
+	sc, _ := propagation.FromBinary([]byte(msg.Metadata.Get(conf.SpanContextKey)))
 	_, span := trace.StartSpanWithRemoteParent(context.Background(), "event.RollbackPayment", sc)
 	defer span.End()
 
@@ -94,9 +87,7 @@ func (h *SagaPaymentHandler) RollbackPayment(msg *message.Message) ([]*message.M
 	}
 	var replyMsgs []*message.Message
 	replyMsg := message.NewMessage(watermill.NewUUID(), payload)
-	if err := broker.SetSpanContext(replyMsg, span); err != nil {
-		return nil, err
-	}
+	broker.SetSpanContext(replyMsg, span)
 	replyMsg.Metadata.Set(conf.HandlerHeader, conf.RollbackPaymentHandler)
 	replyMsgs = append(replyMsgs, replyMsg)
 	return replyMsgs, nil
