@@ -69,3 +69,36 @@ steps:
 trigger:
   branch:
   - main
+
+---
+kind: pipeline
+type: docker
+name: release
+
+platform:
+  os: linux
+  arch: amd64
+
+x-build-docker-image: &x-build-docker-image
+  image: plugins/docker
+  settings:
+    custom_labels:
+    - 'BUILD_NUMBER=${DRONE_BUILD_NUMBER}'
+    - 'BUILD_SHA=${DRONE_COMMIT_SHA}'
+    tags:
+      - ${DRONE_TAG}
+    username:
+      from_secret: docker_username
+    password:
+      from_secret: docker_password
+steps:
+- name: push-registry
+  <<: *x-build-docker-image
+  settings:
+    repo: minghsu0107/saga-product
+    dockerfile: Dockerfile
+    context: .
+  when:
+    event:
+    - tag
+
