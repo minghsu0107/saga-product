@@ -41,6 +41,9 @@ steps:
   image: mysql:8.0
   commands:
   - /bin/sh -c 'until mysql -hmysql -uming -ppassword; do echo "Waiting for db..."; sleep 1; done'
+  when:
+    event:
+    - push
 - name: test
   pull: if-not-exists
   image: golang:1.15.2
