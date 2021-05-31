@@ -60,7 +60,9 @@ steps:
   depends_on:
     - test
   when:
-    event: push
+    event:
+    - push
+    - tag
 
 trigger:
   branch:
