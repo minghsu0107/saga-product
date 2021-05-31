@@ -51,6 +51,9 @@ steps:
   - make test
   depends_on:
     - pingdb
+  when:
+    event:
+    - push
 - name: push-registry
   <<: *x-build-docker-image
   settings:
@@ -62,7 +65,6 @@ steps:
   when:
     event:
     - push
-    - tag
 
 trigger:
   branch:
