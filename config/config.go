@@ -7,7 +7,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/kelseyhightower/envconfig"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // Config is a type for general configuration
