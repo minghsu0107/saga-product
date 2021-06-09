@@ -77,6 +77,8 @@ steps:
 - name: release
   <<: *x-build-docker-image
   settings:
+    tags:
+      - ${DRONE_TAG}
     repo: minghsu0107/saga-product
     dockerfile: Dockerfile
     context: .
