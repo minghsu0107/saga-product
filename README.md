@@ -12,6 +12,7 @@ Features:
   - HTTP server
   - gRPC server
   - gPRC client
+  - Event handlers
 - Four microservices in a monorepo and compiled to a single binary, minimizing deployment efforts
 - Comprehensive application struture with domain-driven design (DDD), decoupling service implementations from configurations and transports
 - Compile-time dependecy injection using [wire](https://github.com/google/wire)
