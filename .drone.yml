@@ -57,8 +57,6 @@ steps:
   depends_on:
     - pingdb
   when:
-    branch:
-    - main
     event:
     - push
 - name: push-registry
