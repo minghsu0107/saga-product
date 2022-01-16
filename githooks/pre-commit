@@ -1,4 +1,4 @@
 #!/bin/bash
-make mockgen
+make pretest
 go mod tidy
-git add .
+git add go.mod go.sum
