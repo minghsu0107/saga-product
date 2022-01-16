@@ -14,7 +14,7 @@ build-linux: dep
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o server -v ./main.go
 
 runtest:
-	$(GOTEST) -v ./...
+	$(GOTEST) -gcflags=-l -v -cover -coverpkg=./... -coverprofile=cover.out ./...
 dep: wire
 	$(shell $(GOCMD) env GOPATH)/bin/wire ./dep
 

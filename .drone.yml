@@ -42,8 +42,6 @@ steps:
   commands:
   - /bin/sh -c 'until mysql -hmysql -uming -ppassword; do echo "Waiting for db..."; sleep 1; done'
   when:
-    branch:
-    - main
     event:
     - push
 - name: test
@@ -56,6 +54,31 @@ steps:
   - make test
   depends_on:
     - pingdb
+  when:
+    event:
+    - push
+- name: sonar-scanner
+  image: sonarsource/sonar-scanner-cli:4.6
+  environment:
+    SONAR_HOST:
+      from_secret: sonar_host
+    SONAR_LOGIN_TOKEN:
+      from_secret: sonar_login_token
+  commands:
+  - >
+    sonar-scanner
+    -Dsonar.host.url=$SONAR_HOST
+    -Dsonar.login=$SONAR_LOGIN_TOKEN
+    -Dsonar.projectKey=minghsu0107_saga-purchase
+    -Dsonar.projectVersion=${DRONE_BUILD_NUMBER}
+    -Dsonar.projectBaseDir=$PWD
+    -Dsonar.links.homepage=${DRONE_REPO_LINK}
+    -Dsonar.links.ci=${DRONE_BUILD_LINK}
+    -Dsonar.sources=.
+    -Dsonar.go.coverage.reportPaths=cover.out
+    -Dsonar.exclusions=**/*.pb.go,**/*.pb.gw.go,**/*_test.go,**/*_mock.go
+  depends_on:
+    - test
   when:
     event:
     - push
