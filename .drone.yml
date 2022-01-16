@@ -69,7 +69,7 @@ steps:
     sonar-scanner
     -Dsonar.host.url=$SONAR_HOST
     -Dsonar.login=$SONAR_LOGIN_TOKEN
-    -Dsonar.projectKey=minghsu0107_saga-purchase
+    -Dsonar.projectKey=minghsu0107_saga-product
     -Dsonar.projectVersion=${DRONE_BUILD_NUMBER}
     -Dsonar.projectBaseDir=$PWD
     -Dsonar.links.homepage=${DRONE_REPO_LINK}
