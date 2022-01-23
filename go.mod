@@ -16,7 +16,6 @@ require (
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2
-	github.com/google/subcommands v1.2.0 // indirect
 	github.com/google/wire v0.4.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
@@ -43,7 +42,6 @@ require (
 	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
-	golang.org/x/tools v0.1.8 // indirect
 	google.golang.org/api v0.41.0 // indirect
 	google.golang.org/genproto v0.0.0-20210524171403-669157292da3 // indirect
 	google.golang.org/grpc v1.38.0
