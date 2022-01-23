@@ -64,15 +64,15 @@ func InitializeProductServer() (*infra.ProductServer, error) {
 	server := product.NewProductServer(configConfig, engine, router)
 	sagaProductService := product2.NewSagaProductService(configConfig, productRepoCache)
 	grpcServer := product3.NewProductServer(configConfig, productService, sagaProductService)
-	subscriber, err := broker.NewNATSSubscriber(configConfig)
+	natsSubscriber, err := broker.NewNATSSubscriber(configConfig)
 	if err != nil {
 		return nil, err
 	}
-	publisher, err := broker.NewNATSPublisher(configConfig)
+	natsPublisher, err := broker.NewNATSPublisher(configConfig)
 	if err != nil {
 		return nil, err
 	}
-	eventRouter, err := product4.NewProductEventRouter(configConfig, sagaProductService, subscriber, publisher)
+	eventRouter, err := product4.NewProductEventRouter(configConfig, sagaProductService, natsSubscriber, natsPublisher)
 	if err != nil {
 		return nil, err
 	}
@@ -115,15 +115,15 @@ func InitializeOrderServer() (*infra.OrderServer, error) {
 	jwtAuthChecker := middleware.NewJWTAuthChecker(configConfig, authRepository)
 	server := order.NewOrderServer(configConfig, engine, router, jwtAuthChecker)
 	sagaOrderService := order3.NewSagaOrderService(configConfig, orderRepoCache)
-	subscriber, err := broker.NewNATSSubscriber(configConfig)
+	natsSubscriber, err := broker.NewNATSSubscriber(configConfig)
 	if err != nil {
 		return nil, err
 	}
-	publisher, err := broker.NewNATSPublisher(configConfig)
+	natsPublisher, err := broker.NewNATSPublisher(configConfig)
 	if err != nil {
 		return nil, err
 	}
-	eventRouter, err := order4.NewOrderEventRouter(configConfig, sagaOrderService, subscriber, publisher)
+	eventRouter, err := order4.NewOrderEventRouter(configConfig, sagaOrderService, natsSubscriber, natsPublisher)
 	if err != nil {
 		return nil, err
 	}
@@ -162,15 +162,15 @@ func InitializePaymentServer() (*infra.PaymentServer, error) {
 	jwtAuthChecker := middleware.NewJWTAuthChecker(configConfig, authRepository)
 	server := payment.NewPaymentServer(configConfig, engine, router, jwtAuthChecker)
 	sagaPaymentService := payment2.NewSagaPaymentService(configConfig, paymentRepoCache)
-	subscriber, err := broker.NewNATSSubscriber(configConfig)
+	natsSubscriber, err := broker.NewNATSSubscriber(configConfig)
 	if err != nil {
 		return nil, err
 	}
-	publisher, err := broker.NewNATSPublisher(configConfig)
+	natsPublisher, err := broker.NewNATSPublisher(configConfig)
 	if err != nil {
 		return nil, err
 	}
-	eventRouter, err := payment3.NewPaymentEventRouter(configConfig, sagaPaymentService, subscriber, publisher)
+	eventRouter, err := payment3.NewPaymentEventRouter(configConfig, sagaPaymentService, natsSubscriber, natsPublisher)
 	if err != nil {
 		return nil, err
 	}
@@ -191,19 +191,23 @@ func InitializeOrchestratorServer() (*infra.OrchestratorServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	publisher, err := broker.NewNATSPublisher(configConfig)
+	natsPublisher, err := broker.NewNATSPublisher(configConfig)
 	if err != nil {
 		return nil, err
 	}
-	orchestratorService, err := orchestrator.NewOrchestratorService(configConfig, idGenerator, publisher)
+	redisPublisher, err := broker.NewRedisPublisher(configConfig)
 	if err != nil {
 		return nil, err
 	}
-	subscriber, err := broker.NewNATSSubscriber(configConfig)
+	orchestratorService, err := orchestrator.NewOrchestratorService(configConfig, idGenerator, natsPublisher, redisPublisher)
 	if err != nil {
 		return nil, err
 	}
-	eventRouter, err := orchestrator2.NewOrchestratorEventRouter(configConfig, orchestratorService, subscriber)
+	natsSubscriber, err := broker.NewNATSSubscriber(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	eventRouter, err := orchestrator2.NewOrchestratorEventRouter(configConfig, orchestratorService, natsSubscriber)
 	if err != nil {
 		return nil, err
 	}

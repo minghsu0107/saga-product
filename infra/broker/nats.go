@@ -1,23 +1,28 @@
 package broker
 
 import (
-	"github.com/ThreeDotsLabs/watermill/message"
+	"fmt"
 
 	"github.com/ThreeDotsLabs/watermill-nats/pkg/nats"
+	"github.com/ThreeDotsLabs/watermill/components/metrics"
+	"github.com/ThreeDotsLabs/watermill/message"
 	conf "github.com/minghsu0107/saga-product/config"
 	stan "github.com/nats-io/stan.go"
+	prom "github.com/prometheus/client_golang/prometheus"
 )
 
-// Publisher singleton
-var Publisher message.Publisher
+type NATSPublisher message.Publisher
+type NATSSubscriber message.Subscriber
 
-// Subscriber singleton
-var Subscriber message.Subscriber
+var (
+	TxPublisher  NATSPublisher
+	TxSubscriber NATSSubscriber
+)
 
 // NewNATSPublisher returns a NATS publisher for event streaming
-func NewNATSPublisher(config *conf.Config) (message.Publisher, error) {
+func NewNATSPublisher(config *conf.Config) (NATSPublisher, error) {
 	var err error
-	Publisher, err = nats.NewStreamingPublisher(
+	TxPublisher, err = nats.NewStreamingPublisher(
 		nats.StreamingPublisherConfig{
 			ClusterID: config.NATS.ClusterID,
 			ClientID:  config.NATS.ClientID + "_publisher",
@@ -32,13 +37,22 @@ func NewNATSPublisher(config *conf.Config) (message.Publisher, error) {
 		return nil, err
 	}
 
-	return Publisher, nil
+	registry, ok := prom.DefaultGatherer.(*prom.Registry)
+	if !ok {
+		return nil, fmt.Errorf("prometheus type casting error")
+	}
+	metricsBuilder := metrics.NewPrometheusMetricsBuilder(registry, config.App, "pubsub")
+	TxPublisher, err = metricsBuilder.DecoratePublisher(TxPublisher)
+	if err != nil {
+		return nil, err
+	}
+	return TxPublisher, nil
 }
 
 // NewNATSSubscriber returns a NATS subscriber for event streaming
-func NewNATSSubscriber(config *conf.Config) (message.Subscriber, error) {
+func NewNATSSubscriber(config *conf.Config) (NATSSubscriber, error) {
 	var err error
-	Subscriber, err = nats.NewStreamingSubscriber(
+	TxSubscriber, err = nats.NewStreamingSubscriber(
 		nats.StreamingSubscriberConfig{
 			ClusterID: config.NATS.ClusterID,
 			ClientID:  config.NATS.ClientID + "_subscriber",
@@ -57,5 +71,14 @@ func NewNATSSubscriber(config *conf.Config) (message.Subscriber, error) {
 		return nil, err
 	}
 
-	return Subscriber, nil
+	registry, ok := prom.DefaultGatherer.(*prom.Registry)
+	if !ok {
+		return nil, fmt.Errorf("prometheus type casting error")
+	}
+	metricsBuilder := metrics.NewPrometheusMetricsBuilder(registry, config.App, "pubsub")
+	TxSubscriber, err = metricsBuilder.DecorateSubscriber(TxSubscriber)
+	if err != nil {
+		return nil, err
+	}
+	return TxSubscriber, nil
 }

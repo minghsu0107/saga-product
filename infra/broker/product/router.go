@@ -99,12 +99,12 @@ func (h *SagaProductHandler) RollbackProductInventory(msg *message.Message) ([]*
 type ProductEventRouter struct {
 	router             *message.Router
 	sagaProductHandler *SagaProductHandler
-	subscriber         message.Subscriber
-	publisher          message.Publisher
+	txSubscriber       broker.NATSSubscriber
+	txPublisher        broker.NATSPublisher
 }
 
 // NewProductEventRouter factory
-func NewProductEventRouter(config *conf.Config, sagaProductSvc product.SagaProductService, subscriber message.Subscriber, publisher message.Publisher) (broker.EventRouter, error) {
+func NewProductEventRouter(config *conf.Config, sagaProductSvc product.SagaProductService, txSubscriber broker.NATSSubscriber, txPublisher broker.NATSPublisher) (broker.EventRouter, error) {
 	router, err := broker.InitializeRouter(config.App)
 	if err != nil {
 		return nil, err
@@ -115,8 +115,8 @@ func NewProductEventRouter(config *conf.Config, sagaProductSvc product.SagaProdu
 	return &ProductEventRouter{
 		router:             router,
 		sagaProductHandler: &sagaProductHandler,
-		subscriber:         subscriber,
-		publisher:          publisher,
+		txSubscriber:       txSubscriber,
+		txPublisher:        txPublisher,
 	}, nil
 }
 
@@ -124,17 +124,17 @@ func (r *ProductEventRouter) RegisterHandlers() {
 	r.router.AddHandler(
 		"sagaproduct_update_product_inventory_handler",
 		conf.UpdateProductInventoryTopic,
-		r.subscriber,
+		r.txSubscriber,
 		conf.ReplyTopic,
-		r.publisher,
+		r.txPublisher,
 		r.sagaProductHandler.UpdateProductInventory,
 	)
 	r.router.AddHandler(
 		"sagaproduct_rollback_product_inventory_handler",
 		conf.RollbackProductInventoryTopic,
-		r.subscriber,
+		r.txSubscriber,
 		conf.ReplyTopic,
-		r.publisher,
+		r.txPublisher,
 		r.sagaProductHandler.RollbackProductInventory,
 	)
 }

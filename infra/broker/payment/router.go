@@ -97,12 +97,12 @@ func (h *SagaPaymentHandler) RollbackPayment(msg *message.Message) ([]*message.M
 type PaymentEventRouter struct {
 	router             *message.Router
 	sagaPaymentHandler *SagaPaymentHandler
-	subscriber         message.Subscriber
-	publisher          message.Publisher
+	txSubscriber       broker.NATSSubscriber
+	txPublisher        broker.NATSPublisher
 }
 
 // NewPaymentEventRouter factory
-func NewPaymentEventRouter(config *conf.Config, sagaPaymentSvc payment.SagaPaymentService, subscriber message.Subscriber, publisher message.Publisher) (broker.EventRouter, error) {
+func NewPaymentEventRouter(config *conf.Config, sagaPaymentSvc payment.SagaPaymentService, txSubscriber broker.NATSSubscriber, txPublisher broker.NATSPublisher) (broker.EventRouter, error) {
 	router, err := broker.InitializeRouter(config.App)
 	if err != nil {
 		return nil, err
@@ -113,8 +113,8 @@ func NewPaymentEventRouter(config *conf.Config, sagaPaymentSvc payment.SagaPayme
 	return &PaymentEventRouter{
 		router:             router,
 		sagaPaymentHandler: &sagaPaymentHandler,
-		subscriber:         subscriber,
-		publisher:          publisher,
+		txSubscriber:       txSubscriber,
+		txPublisher:        txPublisher,
 	}, nil
 }
 
@@ -122,17 +122,17 @@ func (r *PaymentEventRouter) RegisterHandlers() {
 	r.router.AddHandler(
 		"sagapayment_create_payment_handler",
 		conf.CreatePaymentTopic,
-		r.subscriber,
+		r.txSubscriber,
 		conf.ReplyTopic,
-		r.publisher,
+		r.txPublisher,
 		r.sagaPaymentHandler.CreatePayment,
 	)
 	r.router.AddHandler(
 		"sagapayment_rollback_payment_handler",
 		conf.RollbackPaymentTopic,
-		r.subscriber,
+		r.txSubscriber,
 		conf.ReplyTopic,
-		r.publisher,
+		r.txPublisher,
 		r.sagaPaymentHandler.RollbackPayment,
 	)
 }

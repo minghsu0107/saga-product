@@ -153,6 +153,7 @@ func InitializeOrchestratorServer() (*infra.OrchestratorServer, error) {
 
 		broker.NewNATSPublisher,
 		broker.NewNATSSubscriber,
+		broker.NewRedisPublisher,
 
 		orchestrator.NewOrchestratorService,
 

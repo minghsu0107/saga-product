@@ -31,8 +31,8 @@ func RunOrderServer(app string) {
 		log.Fatal(err)
 	}
 	defer cache.RedisClient.Close()
-	defer broker.Publisher.Close()
-	defer broker.Subscriber.Close()
+	defer broker.TxPublisher.Close()
+	defer broker.TxSubscriber.Close()
 	defer grpc_auth.AuthClientConn.Conn.Close()
 	defer grpc_order.ProductClientConn.Conn.Close()
 

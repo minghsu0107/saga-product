@@ -37,11 +37,11 @@ func (h *OrchestratorHandler) HandleReply(msg *message.Message) error {
 type OrchestratorEventRouter struct {
 	router              *message.Router
 	orchestratorHandler *OrchestratorHandler
-	subscriber          message.Subscriber
+	txSubscriber        broker.NATSSubscriber
 }
 
 // NewOrchestratorEventRouter factory
-func NewOrchestratorEventRouter(config *conf.Config, orchestratorSvc orchestrator.OrchestratorService, subscriber message.Subscriber) (broker.EventRouter, error) {
+func NewOrchestratorEventRouter(config *conf.Config, orchestratorSvc orchestrator.OrchestratorService, txSubscriber broker.NATSSubscriber) (broker.EventRouter, error) {
 	router, err := broker.InitializeRouter(config.App)
 	if err != nil {
 		return nil, err
@@ -52,7 +52,7 @@ func NewOrchestratorEventRouter(config *conf.Config, orchestratorSvc orchestrato
 	return &OrchestratorEventRouter{
 		router:              router,
 		orchestratorHandler: &orchestratorHandler,
-		subscriber:          subscriber,
+		txSubscriber:        txSubscriber,
 	}, nil
 }
 
@@ -60,13 +60,13 @@ func (r *OrchestratorEventRouter) RegisterHandlers() {
 	r.router.AddNoPublisherHandler(
 		"sagaorchestrator_start_transaction_handler",
 		conf.PurchaseTopic,
-		r.subscriber,
+		r.txSubscriber,
 		r.orchestratorHandler.StartTransaction,
 	)
 	r.router.AddNoPublisherHandler(
 		"sagaorchestrator_handle_reply_handler",
 		conf.ReplyTopic,
-		r.subscriber,
+		r.txSubscriber,
 		r.orchestratorHandler.HandleReply,
 	)
 }

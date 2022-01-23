@@ -19,8 +19,9 @@ func RunOrchestratorServer(app string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer broker.Publisher.Close()
-	defer broker.Subscriber.Close()
+	defer broker.TxPublisher.Close()
+	defer broker.ResultPublisher.Close()
+	defer broker.TxSubscriber.Close()
 
 	go func() {
 		errs <- server.Run()

@@ -97,12 +97,12 @@ func (h *SagaOrderHandler) RollbackOrder(msg *message.Message) ([]*message.Messa
 type OrderEventRouter struct {
 	router           *message.Router
 	sagaOrderHandler *SagaOrderHandler
-	subscriber       message.Subscriber
-	publisher        message.Publisher
+	txSubscriber     broker.NATSSubscriber
+	txPublisher      broker.NATSPublisher
 }
 
 // NewOrderEventRouter factory
-func NewOrderEventRouter(config *conf.Config, sagaOrderSvc order.SagaOrderService, subscriber message.Subscriber, publisher message.Publisher) (broker.EventRouter, error) {
+func NewOrderEventRouter(config *conf.Config, sagaOrderSvc order.SagaOrderService, txSubscriber broker.NATSSubscriber, txPublisher broker.NATSPublisher) (broker.EventRouter, error) {
 	router, err := broker.InitializeRouter(config.App)
 	if err != nil {
 		return nil, err
@@ -113,8 +113,8 @@ func NewOrderEventRouter(config *conf.Config, sagaOrderSvc order.SagaOrderServic
 	return &OrderEventRouter{
 		router:           router,
 		sagaOrderHandler: &sagaOrderHandler,
-		subscriber:       subscriber,
-		publisher:        publisher,
+		txSubscriber:     txSubscriber,
+		txPublisher:      txPublisher,
 	}, nil
 }
 
@@ -122,17 +122,17 @@ func (r *OrderEventRouter) RegisterHandlers() {
 	r.router.AddHandler(
 		"sagaorder_create_order_handler",
 		conf.CreateOrderTopic,
-		r.subscriber,
+		r.txSubscriber,
 		conf.ReplyTopic,
-		r.publisher,
+		r.txPublisher,
 		r.sagaOrderHandler.CreateOrder,
 	)
 	r.router.AddHandler(
 		"sagaorder_rollback_order_handler",
 		conf.RollbackOrderTopic,
-		r.subscriber,
+		r.txSubscriber,
 		conf.ReplyTopic,
-		r.publisher,
+		r.txPublisher,
 		r.sagaOrderHandler.RollbackOrder,
 	)
 }

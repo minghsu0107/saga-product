@@ -13,24 +13,34 @@ import (
 	conf "github.com/minghsu0107/saga-product/config"
 	"github.com/minghsu0107/saga-product/domain/event"
 	"github.com/minghsu0107/saga-product/domain/model"
+	"github.com/minghsu0107/saga-product/infra/broker"
 	"github.com/minghsu0107/saga-product/pkg"
 	log "github.com/sirupsen/logrus"
 	"go.opencensus.io/trace"
 	"go.opencensus.io/trace/propagation"
 )
 
+type MessageType int
+
+const (
+	TX_MSG MessageType = iota
+	RESULT_MSG
+)
+
 // OrchestratorServiceImpl implementation
 type OrchestratorServiceImpl struct {
-	sf        pkg.IDGenerator
-	publisher message.Publisher
-	logger    *log.Entry
+	sf              pkg.IDGenerator
+	txPublisher     broker.NATSPublisher
+	resultPublisher broker.RedisPublisher
+	logger          *log.Entry
 }
 
 // NewOrchestratorService factory
-func NewOrchestratorService(config *conf.Config, sf pkg.IDGenerator, publisher message.Publisher) (OrchestratorService, error) {
+func NewOrchestratorService(config *conf.Config, sf pkg.IDGenerator, txPublisher broker.NATSPublisher, resultPublisher broker.RedisPublisher) (OrchestratorService, error) {
 	return &OrchestratorServiceImpl{
-		sf:        sf,
-		publisher: publisher,
+		sf:              sf,
+		txPublisher:     txPublisher,
+		resultPublisher: resultPublisher,
 		logger: config.Logger.ContextLogger.WithFields(log.Fields{
 			"type": "service:OrchestratorService",
 		}),
@@ -64,7 +74,7 @@ func (svc *OrchestratorServiceImpl) StartTransaction(sc trace.SpanContext, purch
 		Status:     event.StatusExecute,
 	}, correlationID)
 	svc.logger.Infof("update product inventory %v", purchase.ID)
-	return svc.publishMessage(childCtx, conf.UpdateProductInventoryTopic, msg)
+	return svc.publishMessage(childCtx, conf.UpdateProductInventoryTopic, msg, TX_MSG)
 }
 
 // HandleReply handles reply events
@@ -162,7 +172,7 @@ func (svc *OrchestratorServiceImpl) rollbackProductInventory(ctx context.Context
 		Status:     event.StatusRollbacked,
 	}, correlationID)
 
-	return svc.publishMessage(ctx, conf.RollbackProductInventoryTopic, msg)
+	return svc.publishMessage(ctx, conf.RollbackProductInventoryTopic, msg, TX_MSG)
 }
 
 func (svc *OrchestratorServiceImpl) rollbackFromOrder(ctx context.Context, customerID, purchaseID uint64, correlationID string) error {
@@ -261,7 +271,7 @@ func (svc *OrchestratorServiceImpl) createOrder(ctx context.Context, purchase *m
 		Status:     event.StatusExecute,
 	}, correlationID)
 
-	return svc.publishMessage(ctx, conf.CreateOrderTopic, msg)
+	return svc.publishMessage(ctx, conf.CreateOrderTopic, msg, TX_MSG)
 }
 
 func (svc *OrchestratorServiceImpl) rollbackOrder(ctx context.Context, customerID, purchaseID uint64, correlationID string) error {
@@ -276,7 +286,7 @@ func (svc *OrchestratorServiceImpl) rollbackOrder(ctx context.Context, customerI
 	}
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	middleware.SetCorrelationID(correlationID, msg)
-	return svc.publishMessage(ctx, conf.RollbackOrderTopic, msg)
+	return svc.publishMessage(ctx, conf.RollbackOrderTopic, msg, TX_MSG)
 }
 
 func (svc *OrchestratorServiceImpl) createPayment(ctx context.Context, purchase *model.Purchase, correlationID string) error {
@@ -303,7 +313,7 @@ func (svc *OrchestratorServiceImpl) createPayment(ctx context.Context, purchase 
 		Status:     event.StatusExecute,
 	}, correlationID)
 
-	return svc.publishMessage(ctx, conf.CreatePaymentTopic, msg)
+	return svc.publishMessage(ctx, conf.CreatePaymentTopic, msg, TX_MSG)
 }
 
 func (svc *OrchestratorServiceImpl) rollbackPayment(ctx context.Context, customerID, purchaseID uint64, correlationID string) error {
@@ -318,7 +328,7 @@ func (svc *OrchestratorServiceImpl) rollbackPayment(ctx context.Context, custome
 	}
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	middleware.SetCorrelationID(correlationID, msg)
-	return svc.publishMessage(ctx, conf.RollbackPaymentTopic, msg)
+	return svc.publishMessage(ctx, conf.RollbackPaymentTopic, msg, TX_MSG)
 }
 
 func (svc *OrchestratorServiceImpl) publishPurchaseResult(ctx context.Context, purchaseResult *event.PurchaseResult, correlationID string) {
@@ -329,15 +339,22 @@ func (svc *OrchestratorServiceImpl) publishPurchaseResult(ctx context.Context, p
 	}
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	middleware.SetCorrelationID(correlationID, msg)
-	if err := svc.publishMessage(ctx, conf.PurchaseResultTopic, msg); err != nil {
+	if err := svc.publishMessage(ctx, conf.PurchaseResultTopic, msg, RESULT_MSG); err != nil {
 		svc.logger.Error(err)
 	}
 }
 
-func (svc *OrchestratorServiceImpl) publishMessage(ctx context.Context, topic string, msg *message.Message) error {
+func (svc *OrchestratorServiceImpl) publishMessage(ctx context.Context, topic string, msg *message.Message, messageType MessageType) error {
 	span := trace.FromContext(ctx)
 	msg.Metadata.Set(conf.SpanContextKey, string(propagation.Binary(span.SpanContext())))
-	return svc.publisher.Publish(topic, msg)
+	switch messageType {
+	case TX_MSG:
+		return svc.txPublisher.Publish(topic, msg)
+	case RESULT_MSG:
+		return svc.resultPublisher.Publish(topic, msg)
+	default:
+		return fmt.Errorf("unkown message type: %v", messageType)
+	}
 }
 
 func (svc *OrchestratorServiceImpl) publishRollbackResult(ctx context.Context, step string, rollbackResponse *model.RollbackResponse, correlationID string) {
