@@ -21,7 +21,7 @@ type Config struct {
 	DBConfig         *DBConfig         `yaml:"dbConfig"`
 	LocalCacheConfig *LocalCacheConfig `yaml:"localCacheConfig"`
 	RedisConfig      *RedisConfig      `yaml:"redisConfig"`
-	NATS             *NATS             `yaml:"nats"`
+	NATSConfig       *NATSConfig       `yaml:"natsConfig"`
 	RPCEndpoints     *RPCEndpoints     `yaml:"rpcEndpoints"`
 	ServiceOptions   *ServiceOptions   `yaml:"serviceOptions"`
 	Logger           *Logger
@@ -50,14 +50,18 @@ type RedisConfig struct {
 	IdleTimeoutSeconds int64  `yaml:"idleTimeoutSeconds" envconfig:"REDIS_IDLE_TIMEOUT_SECONDS"`
 }
 
-// NATS wraps NATS client configurations
-type NATS struct {
-	ClusterID       string `yaml:"clusterID" envconfig:"NATS_CLUSTER_ID"`
-	URL             string `yaml:"url" envconfig:"NATS_URL"`
-	ClientID        string `yaml:"clientID" envconfig:"NATS_CLIENT_ID"`
-	QueueGroup      string `yaml:"queueGroup" envconfig:"NATS_QUEUE_GROUP"`
-	DurableName     string `yaml:"durableName" envconfig:"NATS_DURABLE_NAME"`
-	SubscriberCount int    `yaml:"subscriberCount" envconfig:"NATS_SUBSCRIBER_COUNT"`
+// NATSConfig wraps NATS client configurations
+type NATSConfig struct {
+	ClusterID  string          `yaml:"clusterID" envconfig:"NATS_CLUSTER_ID"`
+	URL        string          `yaml:"url" envconfig:"NATS_URL"`
+	ClientID   string          `yaml:"clientID" envconfig:"NATS_CLIENT_ID"`
+	Subscriber *NATSSubscriber `yaml:"subscriber"`
+}
+
+type NATSSubscriber struct {
+	QueueGroup  string `yaml:"queueGroup" envconfig:"NATS_SUBSCRIBER_QUEUE_GROUP"`
+	DurableName string `yaml:"durableName" envconfig:"NATS_SUBSCRIBER_DURABLE_NAME"`
+	Count       int    `yaml:"count" envconfig:"NATS_SUBSCRIBER_COUNT"`
 }
 
 // RPCEndpoints wraps all rpc server urls
@@ -82,11 +86,11 @@ func NewConfig() (*Config, error) {
 	if err := readEnv(&config); err != nil {
 		return nil, err
 	}
-	if config.NATS.ClientID == "" {
-		config.NATS.ClientID = watermill.NewShortUUID()
-	}
 	config.Logger = newLogger(config.App, config.GinMode)
 	log.SetOutput(config.Logger.Writer)
+	if config.NATSConfig.ClientID == "" {
+		config.NATSConfig.ClientID = watermill.NewShortUUID()
+	}
 
 	return &config, nil
 }

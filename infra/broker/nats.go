@@ -24,10 +24,10 @@ func NewNATSPublisher(config *conf.Config) (NATSPublisher, error) {
 	var err error
 	TxPublisher, err = nats.NewStreamingPublisher(
 		nats.StreamingPublisherConfig{
-			ClusterID: config.NATS.ClusterID,
-			ClientID:  config.NATS.ClientID + "_publisher",
+			ClusterID: config.NATSConfig.ClusterID,
+			ClientID:  config.NATSConfig.ClientID + "_publisher",
 			StanOptions: []stan.Option{
-				stan.NatsURL(config.NATS.URL),
+				stan.NatsURL(config.NATSConfig.URL),
 			},
 			Marshaler: nats.GobMarshaler{},
 		},
@@ -54,14 +54,14 @@ func NewNATSSubscriber(config *conf.Config) (NATSSubscriber, error) {
 	var err error
 	TxSubscriber, err = nats.NewStreamingSubscriber(
 		nats.StreamingSubscriberConfig{
-			ClusterID: config.NATS.ClusterID,
-			ClientID:  config.NATS.ClientID + "_subscriber",
+			ClusterID: config.NATSConfig.ClusterID,
+			ClientID:  config.NATSConfig.ClientID + "_subscriber",
 
-			QueueGroup:       config.NATS.QueueGroup,
-			DurableName:      config.NATS.DurableName,
-			SubscribersCount: config.NATS.SubscriberCount,
+			QueueGroup:       config.NATSConfig.Subscriber.QueueGroup,
+			DurableName:      config.NATSConfig.Subscriber.DurableName,
+			SubscribersCount: config.NATSConfig.Subscriber.Count,
 			StanOptions: []stan.Option{
-				stan.NatsURL(config.NATS.URL),
+				stan.NatsURL(config.NATSConfig.URL),
 			},
 			Unmarshaler: nats.GobMarshaler{},
 		},

@@ -18,13 +18,14 @@ redisConfig:
   maxRetries: 3
   expirationSeconds: 900
   idleTimeoutSeconds: 30
-nats:
+natsConfig:
   clusterID: "test-cluster"
   url: "nats://127.0.0.1:4222"
   clientID: "" # will be randomly generated if not specified
-  queueGroup: PLACEHOLDER # should be overrided
-  durableName: PLACEHOLDER # should be overrided
-  subscriberCount: 3
+  subscriber:
+    queueGroup: PLACEHOLDER # should be overrided
+    durableName: PLACEHOLDER # should be overrided
+    count: 3
 rpcEndpoints:
   authSvcHost: ""
   productSvcHost: ""
