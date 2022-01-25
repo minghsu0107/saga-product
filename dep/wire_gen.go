@@ -187,10 +187,6 @@ func InitializeOrchestratorServer() (*infra.OrchestratorServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	idGenerator, err := pkg.NewSonyFlake()
-	if err != nil {
-		return nil, err
-	}
 	natsPublisher, err := broker.NewNATSPublisher(configConfig)
 	if err != nil {
 		return nil, err
@@ -199,7 +195,7 @@ func InitializeOrchestratorServer() (*infra.OrchestratorServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	orchestratorService, err := orchestrator.NewOrchestratorService(configConfig, idGenerator, natsPublisher, redisPublisher)
+	orchestratorService, err := orchestrator.NewOrchestratorService(configConfig, natsPublisher, redisPublisher)
 	if err != nil {
 		return nil, err
 	}

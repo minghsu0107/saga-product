@@ -29,16 +29,14 @@ const (
 
 // OrchestratorServiceImpl implementation
 type OrchestratorServiceImpl struct {
-	sf              pkg.IDGenerator
 	txPublisher     broker.NATSPublisher
 	resultPublisher broker.RedisPublisher
 	logger          *log.Entry
 }
 
 // NewOrchestratorService factory
-func NewOrchestratorService(config *conf.Config, sf pkg.IDGenerator, txPublisher broker.NATSPublisher, resultPublisher broker.RedisPublisher) (OrchestratorService, error) {
+func NewOrchestratorService(config *conf.Config, txPublisher broker.NATSPublisher, resultPublisher broker.RedisPublisher) (OrchestratorService, error) {
 	return &OrchestratorServiceImpl{
-		sf:              sf,
 		txPublisher:     txPublisher,
 		resultPublisher: resultPublisher,
 		logger: config.Logger.ContextLogger.WithFields(log.Fields{
@@ -51,14 +49,6 @@ func NewOrchestratorService(config *conf.Config, sf pkg.IDGenerator, txPublisher
 func (svc *OrchestratorServiceImpl) StartTransaction(sc trace.SpanContext, purchase *model.Purchase, correlationID string) error {
 	childCtx, span := trace.StartSpanWithRemoteParent(context.Background(), "event.StartTransaction", sc)
 	defer span.End()
-
-	sonyflakeID, err := svc.sf.NextID()
-	if err != nil {
-		return err
-	}
-	purchase.ID = sonyflakeID
-	purchase.Order.ID = sonyflakeID
-	purchase.Payment.ID = sonyflakeID
 
 	cmd := encodeDomainPurchase(purchase)
 	payload, err := json.Marshal(cmd)

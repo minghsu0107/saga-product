@@ -156,8 +156,6 @@ func InitializeOrchestratorServer() (*infra.OrchestratorServer, error) {
 		broker.NewRedisPublisher,
 
 		orchestrator.NewOrchestratorService,
-
-		pkg.NewSonyFlake,
 	)
 	return &infra.OrchestratorServer{}, nil
 }
