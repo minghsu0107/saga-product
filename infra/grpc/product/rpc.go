@@ -40,7 +40,7 @@ func (srv *ProductServer) CheckProducts(ctx context.Context, req *pb.CheckProduc
 }
 
 func (srv *ProductServer) GetProducts(ctx context.Context, req *pb.GetProductsRequest) (*pb.Products, error) {
-	productIDs := req.ProductId
+	productIDs := req.ProductIds
 	products, err := srv.productSvc.GetProducts(ctx, productIDs)
 	if err != nil {
 		return nil, status.Errorf(

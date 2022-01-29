@@ -96,7 +96,7 @@ func (repo *OrderRepositoryImpl) GetDetailedPurchasedItems(ctx context.Context, 
 		productIDs = append(productIDs, purchasedItem.ProductID)
 	}
 	res, err := repo.getProducts(ctx, &pb.GetProductsRequest{
-		ProductId: productIDs,
+		ProductIds: productIDs,
 	})
 	if err != nil {
 		return nil, err
