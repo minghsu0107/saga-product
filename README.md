@@ -7,6 +7,7 @@ Features:
 - Stateless saga orchestrator making transactions scalable
 - Sonyflake distributed unique ID generator
 - Redis cache for fast data retrieval
+- Bloom filters to prevent cache penatration
 - Prometheus metrics
 - Distributed tracing exporter
   - HTTP server
