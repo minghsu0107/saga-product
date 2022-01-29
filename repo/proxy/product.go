@@ -12,6 +12,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var (
+	productBloomFilter = "productbloom"
+	dummyItem          = "dummy"
+)
+
 // ProductRepoCache interface
 type ProductRepoCache interface {
 	CheckProduct(ctx context.Context, cartItem *domain_model.CartItem) (*repo.ProductStatus, error)
@@ -28,28 +33,60 @@ type ProductRepoCacheImpl struct {
 	productRepo repo.ProductRepository
 	lc          cache.LocalCache
 	rc          cache.RedisCache
+	useBloom    bool
 	logger      *logrus.Entry
 }
 
-func NewProductRepoCache(config *conf.Config, repo repo.ProductRepository, lc cache.LocalCache, rc cache.RedisCache) ProductRepoCache {
-	return &ProductRepoCacheImpl{
+func NewProductRepoCache(config *conf.Config, repo repo.ProductRepository, lc cache.LocalCache, rc cache.RedisCache) (ProductRepoCache, error) {
+	useBloom := config.RedisConfig.Bloom.Activate
+	productRepoCache := ProductRepoCacheImpl{
 		productRepo: repo,
 		lc:          lc,
 		rc:          rc,
+		useBloom:    useBloom,
 		logger:      config.Logger.ContextLogger.WithField("type", "cache:ProductRepoCache"),
 	}
+	if useBloom {
+		ctx := context.Background()
+		exist, err := rc.BFExist(ctx, productBloomFilter, dummyItem)
+		if err != nil {
+			return nil, err
+		}
+		if !exist {
+			if err = rc.BFInsert(ctx, productBloomFilter, config.RedisConfig.Bloom.ErrorRate, config.RedisConfig.Bloom.Capacity, dummyItem); err != nil {
+				return nil, err
+			}
+			productRepoCache.logger.Infof("bloom filter already created: key = %s", productBloomFilter)
+		} else {
+			productRepoCache.logger.Infof("bloom filter already exists: key = %s", productBloomFilter)
+		}
+	}
+	return &productRepoCache, nil
 }
 
 func (c *ProductRepoCacheImpl) CheckProduct(ctx context.Context, cartItem *domain_model.CartItem) (*repo.ProductStatus, error) {
+	if c.useBloom {
+		exist, err := c.rc.BFExist(ctx, productBloomFilter, cartItem.ProductID)
+		c.logError(err)
+		if !exist && err == nil {
+			return &repo.ProductStatus{
+				ProductID: cartItem.ProductID,
+				Price:     0,
+				Exist:     false,
+			}, nil
+		}
+	}
 	status := &repo.ProductStatus{}
 	key := pkg.Join("productcheck:", strconv.FormatUint(cartItem.ProductID, 10))
 
 	ok, err := c.lc.Get(key, status)
+	c.logError(err)
 	if ok && err == nil {
 		return status, nil
 	}
 
 	ok, err = c.rc.Get(ctx, key, status)
+	c.logError(err)
 	if ok && err == nil {
 		c.logError(c.lc.Set(key, status))
 		return status, nil
@@ -63,6 +100,7 @@ func (c *ProductRepoCacheImpl) CheckProduct(ctx context.Context, cartItem *domai
 	defer mutex.Unlock()
 
 	ok, err = c.rc.Get(ctx, key, status)
+	c.logError(err)
 	if ok && err == nil {
 		c.logError(c.lc.Set(key, status))
 		return status, nil
@@ -81,15 +119,25 @@ func (c *ProductRepoCacheImpl) ListProducts(ctx context.Context, offset, size in
 }
 
 func (c *ProductRepoCacheImpl) GetProductDetail(ctx context.Context, productID uint64) (*repo.ProductDetail, error) {
+	if c.useBloom {
+		exist, err := c.rc.BFExist(ctx, productBloomFilter, productID)
+		c.logError(err)
+		if !exist && err == nil {
+			return nil, repo.ErrProductNotFound
+		}
+	}
+
 	detail := &repo.ProductDetail{}
 	key := pkg.Join("productdetail:", strconv.FormatUint(productID, 10))
 
 	ok, err := c.lc.Get(key, detail)
+	c.logError(err)
 	if ok && err == nil {
 		return detail, nil
 	}
 
 	ok, err = c.rc.Get(ctx, key, detail)
+	c.logError(err)
 	if ok && err == nil {
 		c.logError(c.lc.Set(key, detail))
 		return detail, nil
@@ -103,6 +151,7 @@ func (c *ProductRepoCacheImpl) GetProductDetail(ctx context.Context, productID u
 	defer mutex.Unlock()
 
 	ok, err = c.rc.Get(ctx, key, detail)
+	c.logError(err)
 	if ok && err == nil {
 		c.logError(c.lc.Set(key, detail))
 		return detail, nil
@@ -117,10 +166,19 @@ func (c *ProductRepoCacheImpl) GetProductDetail(ctx context.Context, productID u
 }
 
 func (c *ProductRepoCacheImpl) GetProductInventory(ctx context.Context, productID uint64) (int64, error) {
+	if c.useBloom {
+		exist, err := c.rc.BFExist(ctx, productBloomFilter, productID)
+		c.logError(err)
+		if !exist && err == nil {
+			return 0, repo.ErrProductNotFound
+		}
+	}
+
 	var redisInventory int64
 	key := pkg.Join("productinventory:", strconv.FormatUint(productID, 10))
 
 	ok, err := c.rc.Get(ctx, key, &redisInventory)
+	c.logError(err)
 	if ok && err == nil {
 		c.logError(c.lc.Set(key, &redisInventory))
 		return redisInventory, nil
@@ -134,6 +192,7 @@ func (c *ProductRepoCacheImpl) GetProductInventory(ctx context.Context, productI
 	defer mutex.Unlock()
 
 	ok, err = c.rc.Get(ctx, key, &redisInventory)
+	c.logError(err)
 	if ok && err == nil {
 		return redisInventory, nil
 	}
@@ -148,7 +207,14 @@ func (c *ProductRepoCacheImpl) GetProductInventory(ctx context.Context, productI
 }
 
 func (c *ProductRepoCacheImpl) CreateProduct(ctx context.Context, product *domain_model.Product) (uint64, error) {
-	return c.productRepo.CreateProduct(ctx, product)
+	productID, err := c.productRepo.CreateProduct(ctx, product)
+	if err != nil {
+		return 0, err
+	}
+	if c.useBloom {
+		c.logError(c.rc.BFAdd(ctx, productBloomFilter, productID))
+	}
+	return productID, nil
 }
 
 func (c *ProductRepoCacheImpl) UpdateProductInventory(ctx context.Context, idempotencyKey uint64, purchasedItems *[]domain_model.PurchasedItem) error {

@@ -105,7 +105,7 @@ func (repo *ProductRepositoryImpl) GetProductDetail(ctx context.Context, product
 	var productDetail ProductDetail
 	if err := repo.db.Model(&model.Product{}).Select("name", "description", "brand_name", "price").Where("id = ?", productID).First(&productDetail).WithContext(ctx).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("product not found; product ID: %v", productID)
+			return nil, ErrProductNotFound
 		}
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (repo *ProductRepositoryImpl) GetProductInventory(ctx context.Context, prod
 	var productInventory productInventory
 	if err := repo.db.Model(&model.Product{}).Select("inventory").Where("id = ?", productID).First(&productInventory).WithContext(ctx).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return 0, fmt.Errorf("product not found; product ID: %v", productID)
+			return 0, ErrProductNotFound
 		}
 		return 0, err
 	}

@@ -3,7 +3,6 @@ package repo
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/go-kit/kit/circuitbreaker"
@@ -69,12 +68,12 @@ func (repo *OrderRepositoryImpl) GetOrder(ctx context.Context, orderID uint64) (
 	var orders []model.Order
 	if err := repo.db.Model(&model.Order{}).Select("id", "product_id", "amount", "customer_id").Where("id = ?", orderID).Order("product_id").Find(&orders).WithContext(ctx).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("order not found; order ID: %v", orderID)
+			return nil, ErrOrderNotFound
 		}
 		return nil, err
 	}
 	if len(orders) == 0 {
-		return nil, fmt.Errorf("order not found; order ID: %v", orderID)
+		return nil, ErrOrderNotFound
 	}
 	var purchasedItems []domain_model.PurchasedItem
 	for _, order := range orders {

@@ -2,9 +2,11 @@ package order
 
 import (
 	"context"
+	"errors"
 
 	conf "github.com/minghsu0107/saga-product/config"
 	"github.com/minghsu0107/saga-product/domain/model"
+	"github.com/minghsu0107/saga-product/repo"
 	"github.com/minghsu0107/saga-product/repo/proxy"
 	log "github.com/sirupsen/logrus"
 )
@@ -36,17 +38,21 @@ func (svc *OrderServiceImpl) GetDetailedOrder(ctx context.Context, customerID, o
 	order, err := svc.orderRepo.GetOrder(ctx, orderID)
 	if err != nil {
 		svc.logger.Error(err.Error())
+		if errors.Is(err, repo.ErrOrderNotFound) {
+			return nil, ErrOrderNotFound
+		}
 		return nil, err
 	}
 
 	if customerID != order.CustomerID {
-		return nil, ErrUnautorized
+		return nil, ErrUnauthorized
 	}
 
 	detailedPurchasedItems, err := svc.orderRepo.GetDetailedPurchasedItems(ctx, order.PurchasedItems)
 
 	if err != nil {
 		svc.logger.Error(err.Error())
+
 		return nil, err
 	}
 	return &model.DetailedOrder{

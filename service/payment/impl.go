@@ -2,9 +2,11 @@ package payment
 
 import (
 	"context"
+	"errors"
 
 	conf "github.com/minghsu0107/saga-product/config"
 	"github.com/minghsu0107/saga-product/domain/model"
+	"github.com/minghsu0107/saga-product/repo"
 	"github.com/minghsu0107/saga-product/repo/proxy"
 	log "github.com/sirupsen/logrus"
 )
@@ -36,10 +38,13 @@ func (svc *PaymentServiceImpl) GetPayment(ctx context.Context, customerID, payme
 	payment, err := svc.paymentRepo.GetPayment(ctx, paymentID)
 	if err != nil {
 		svc.logger.Error(err.Error())
+		if errors.Is(err, repo.ErrPaymentNotFound) {
+			return nil, ErrPaymentNotFound
+		}
 		return nil, err
 	}
 	if customerID != payment.CustomerID {
-		return nil, ErrUnautorized
+		return nil, ErrUnauthorized
 	}
 	return payment, nil
 }

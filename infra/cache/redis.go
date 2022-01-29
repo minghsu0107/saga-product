@@ -29,6 +29,10 @@ type RedisCache interface {
 	Set(ctx context.Context, key string, val interface{}) error
 	HMGet(ctx context.Context, key string, dst interface{}, fields ...string) error
 	HSet(ctx context.Context, key string, values map[string]interface{}) error
+	BFReserve(ctx context.Context, key string, errorRate float64, capacity int64) error
+	BFInsert(ctx context.Context, key string, errorRate float64, capacity int64, items ...interface{}) error
+	BFAdd(ctx context.Context, key string, item interface{}) error
+	BFExist(ctx context.Context, key string, item interface{}) (bool, error)
 	IncrBy(ctx context.Context, key string, val int64) error
 	Delete(ctx context.Context, key string) error
 	GetMutex(mutexname string) *redsync.Mutex
@@ -175,6 +179,37 @@ func (rc *RedisCacheImpl) HSet(ctx context.Context, key string, values map[strin
 	return rc.client.HSet(ctx, key, values).Err()
 }
 
+func (rc *RedisCacheImpl) BFReserve(ctx context.Context, key string, errorRate float64, capacity int64) error {
+	if err := rc.client.Do(ctx, "bf.reserve", key, errorRate, capacity).Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (rc *RedisCacheImpl) BFInsert(ctx context.Context, key string, errorRate float64, capacity int64, items ...interface{}) error {
+	args := []interface{}{"bf.insert", key, "capacity", capacity, "error", errorRate, "items"}
+	args = append(args, items...)
+	if err := rc.client.Do(ctx, args...).Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (rc *RedisCacheImpl) BFAdd(ctx context.Context, key string, item interface{}) error {
+	if err := rc.client.Do(ctx, "bf.add", key, item).Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (rc *RedisCacheImpl) BFExist(ctx context.Context, key string, item interface{}) (bool, error) {
+	res, err := rc.client.Do(ctx, "bf.exists", key, item).Int()
+	if err != nil {
+		return false, err
+	}
+	return (res == 1), nil
+}
+
 func (rc *RedisCacheImpl) IncrBy(ctx context.Context, key string, val int64) error {
 	return rc.client.IncrBy(ctx, key, val).Err()
 }
@@ -189,28 +224,6 @@ func (rc *RedisCacheImpl) Delete(ctx context.Context, key string) error {
 
 func (rc *RedisCacheImpl) GetMutex(mutexname string) *redsync.Mutex {
 	return rc.rs.NewMutex(mutexname, redsync.WithExpiry(5*time.Second))
-}
-
-func (rc *RedisCacheImpl) BFReserve(ctx context.Context, key string, errorRate float64, capacity int64) error {
-	if err := rc.client.Do(ctx, "bf.reserve", key, errorRate, capacity).Err(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (rc *RedisCacheImpl) BFAdd(ctx context.Context, key string, item interface{}) error {
-	if err := rc.client.Do(ctx, "bf.add", key, item).Err(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (rc *RedisCacheImpl) BFExists(ctx context.Context, key string, item interface{}) (bool, error) {
-	res, err := rc.client.Do(ctx, "bf.exists", key, item).Int()
-	if err != nil {
-		return false, err
-	}
-	return (res == 1), nil
 }
 
 // ExecPipeLine execute the given commands in a pipline

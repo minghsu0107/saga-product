@@ -5,6 +5,8 @@ import (
 )
 
 var (
-	// ErrUnautorized is unauthorized error
-	ErrUnautorized = errors.New("unauthorized")
+	// ErrUnauthorized is unauthorized error
+	ErrUnauthorized = errors.New("unauthorized")
+	// ErrPaymentNotFound is payment not found error
+	ErrPaymentNotFound = errors.New("payment not found")
 )

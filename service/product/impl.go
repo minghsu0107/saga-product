@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"errors"
 
 	conf "github.com/minghsu0107/saga-product/config"
 	"github.com/minghsu0107/saga-product/domain/model"
@@ -63,11 +64,17 @@ func (svc *ProductServiceImpl) GetProducts(ctx context.Context, productIDs []uin
 		productDetail, err := svc.productRepo.GetProductDetail(ctx, productID)
 		if err != nil {
 			svc.logger.Error(err.Error())
+			if errors.Is(err, repo.ErrProductNotFound) {
+				return nil, ErrProductNotFound
+			}
 			return nil, err
 		}
 		inventory, err := svc.productRepo.GetProductInventory(ctx, productID)
 		if err != nil {
 			svc.logger.Error(err.Error())
+			if errors.Is(err, repo.ErrProductNotFound) {
+				return nil, ErrProductNotFound
+			}
 			return nil, err
 		}
 		products = append(products, model.Product{

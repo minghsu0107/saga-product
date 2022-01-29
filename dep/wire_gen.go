@@ -58,7 +58,10 @@ func InitializeProductServer() (*infra.ProductServer, error) {
 		return nil, err
 	}
 	redisCache := cache.NewRedisCache(configConfig, clusterClient)
-	productRepoCache := proxy.NewProductRepoCache(configConfig, productRepository, localCache, redisCache)
+	productRepoCache, err := proxy.NewProductRepoCache(configConfig, productRepository, localCache, redisCache)
+	if err != nil {
+		return nil, err
+	}
 	productService := product2.NewProductService(configConfig, productRepoCache)
 	router := product.NewRouter(productService)
 	server := product.NewProductServer(configConfig, engine, router)
@@ -104,7 +107,10 @@ func InitializeOrderServer() (*infra.OrderServer, error) {
 		return nil, err
 	}
 	redisCache := cache.NewRedisCache(configConfig, clusterClient)
-	orderRepoCache := proxy.NewOrderRepoCache(configConfig, orderRepository, redisCache)
+	orderRepoCache, err := proxy.NewOrderRepoCache(configConfig, orderRepository, redisCache)
+	if err != nil {
+		return nil, err
+	}
 	orderService := order3.NewOrderService(configConfig, orderRepoCache)
 	router := order.NewRouter(orderService)
 	authConn, err := auth.NewAuthConn(configConfig)
@@ -151,7 +157,10 @@ func InitializePaymentServer() (*infra.PaymentServer, error) {
 		return nil, err
 	}
 	redisCache := cache.NewRedisCache(configConfig, clusterClient)
-	paymentRepoCache := proxy.NewPaymentRepoCache(configConfig, paymentRepository, redisCache)
+	paymentRepoCache, err := proxy.NewPaymentRepoCache(configConfig, paymentRepository, redisCache)
+	if err != nil {
+		return nil, err
+	}
 	paymentService := payment2.NewPaymentService(configConfig, paymentRepoCache)
 	router := payment.NewRouter(paymentService)
 	authConn, err := auth.NewAuthConn(configConfig)

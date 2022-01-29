@@ -3,7 +3,6 @@ package repo
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	domain_model "github.com/minghsu0107/saga-product/domain/model"
 	"github.com/minghsu0107/saga-product/infra/db/model"
@@ -34,7 +33,7 @@ func (repo *PaymentRepositoryImpl) GetPayment(ctx context.Context, paymentID uin
 	var payment model.Payment
 	if err := repo.db.Model(&model.Payment{}).Select("id", "customer_id", "currency_code", "amount").Where("id = ?", paymentID).First(&payment).WithContext(ctx).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("payment not found; payment ID: %v", paymentID)
+			return nil, ErrPaymentNotFound
 		}
 		return nil, err
 	}

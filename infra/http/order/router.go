@@ -40,7 +40,10 @@ func (r *Router) GetDetailedOrder(c *gin.Context) {
 
 	order, err := r.orderSvc.GetDetailedOrder(c.Request.Context(), customerID, orderID)
 	switch err {
-	case ordersvc.ErrUnautorized:
+	case ordersvc.ErrOrderNotFound:
+		response(c, http.StatusNotFound, ordersvc.ErrOrderNotFound)
+		return
+	case ordersvc.ErrUnauthorized:
 		response(c, http.StatusUnauthorized, common_presenter.ErrUnautorized)
 		return
 	case nil:

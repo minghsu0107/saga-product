@@ -40,7 +40,10 @@ func (r *Router) GetPayment(c *gin.Context) {
 
 	payment, err := r.paymentSvc.GetPayment(c.Request.Context(), customerID, paymentID)
 	switch err {
-	case paymentsvc.ErrUnautorized:
+	case paymentsvc.ErrPaymentNotFound:
+		response(c, http.StatusNotFound, paymentsvc.ErrPaymentNotFound)
+		return
+	case paymentsvc.ErrUnauthorized:
 		response(c, http.StatusUnauthorized, common_presenter.ErrUnautorized)
 		return
 	case nil:

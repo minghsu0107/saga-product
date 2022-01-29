@@ -8,16 +8,16 @@ import (
 	"github.com/minghsu0107/saga-product/domain/model"
 	common_presenter "github.com/minghsu0107/saga-product/infra/http/presenter"
 	"github.com/minghsu0107/saga-product/infra/http/product/presenter"
-	"github.com/minghsu0107/saga-product/service/product"
+	productsvc "github.com/minghsu0107/saga-product/service/product"
 )
 
 // Router wraps http handlers
 type Router struct {
-	productSvc product.ProductService
+	productSvc productsvc.ProductService
 }
 
 // NewRouter is a factory for router instance
-func NewRouter(productSvc product.ProductService) *Router {
+func NewRouter(productSvc productsvc.ProductService) *Router {
 	return &Router{
 		productSvc: productSvc,
 	}
@@ -61,6 +61,9 @@ func (r *Router) GetProduct(c *gin.Context) {
 	}
 	products, err := r.productSvc.GetProducts(c.Request.Context(), []uint64{productID})
 	switch err {
+	case productsvc.ErrProductNotFound:
+		response(c, http.StatusNotFound, productsvc.ErrProductNotFound)
+		return
 	case nil:
 		if len(*products) != 1 {
 			response(c, http.StatusInternalServerError, common_presenter.ErrServer)
