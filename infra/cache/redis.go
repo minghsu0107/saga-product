@@ -191,6 +191,28 @@ func (rc *RedisCacheImpl) GetMutex(mutexname string) *redsync.Mutex {
 	return rc.rs.NewMutex(mutexname, redsync.WithExpiry(5*time.Second))
 }
 
+func (rc *RedisCacheImpl) BFReserve(ctx context.Context, key string, errorRate float64, capacity int64) error {
+	if err := rc.client.Do(ctx, "bf.reserve", key, errorRate, capacity).Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (rc *RedisCacheImpl) BFAdd(ctx context.Context, key string, item interface{}) error {
+	if err := rc.client.Do(ctx, "bf.add", key, item).Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (rc *RedisCacheImpl) BFExists(ctx context.Context, key string, item interface{}) (bool, error) {
+	res, err := rc.client.Do(ctx, "bf.exists", key, item).Int()
+	if err != nil {
+		return false, err
+	}
+	return (res == 1), nil
+}
+
 // ExecPipeLine execute the given commands in a pipline
 func (rc *RedisCacheImpl) ExecPipeLine(ctx context.Context, cmds *[]RedisCmd) error {
 	pipe := rc.client.Pipeline()
