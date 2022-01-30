@@ -18,8 +18,12 @@ redisConfig:
   maxRetries: 3
   expirationSeconds: 900
   idleTimeoutSeconds: 30
+  useCuckoo: true
+  cuckoo:
+    capacity: 600000
+    bucketSize: 2
+    maxIterations: 20
   bloom:
-    activate: true
     # 0.01% error rate requires 14 hash functions and 20.16 bits per item
     errorRate: 0.0001
     capacity: 600000

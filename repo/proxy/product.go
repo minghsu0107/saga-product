@@ -13,8 +13,9 @@ import (
 )
 
 var (
-	productBloomFilter = "productbloom"
-	dummyItem          = "dummy"
+	productBloomFilter  = "productbloom"
+	productCuckooFilter = "productcuckoo"
+	dummyItem           = "dummy"
 )
 
 // ProductRepoCache interface
@@ -33,22 +34,40 @@ type ProductRepoCacheImpl struct {
 	productRepo repo.ProductRepository
 	lc          cache.LocalCache
 	rc          cache.RedisCache
-	useBloom    bool
+	useCuckoo   bool
 	logger      *logrus.Entry
 }
 
 func NewProductRepoCache(config *conf.Config, repo repo.ProductRepository, lc cache.LocalCache, rc cache.RedisCache) (ProductRepoCache, error) {
-	useBloom := config.RedisConfig.Bloom.Activate
+	useCuckoo := config.RedisConfig.UseCuckoo
 	productRepoCache := ProductRepoCacheImpl{
 		productRepo: repo,
 		lc:          lc,
 		rc:          rc,
-		useBloom:    useBloom,
+		useCuckoo:   useCuckoo,
 		logger:      config.Logger.ContextLogger.WithField("type", "cache:ProductRepoCache"),
 	}
-	if useBloom {
-		ctx := context.Background()
-		exist, err := rc.BFExist(ctx, productBloomFilter, dummyItem)
+	ctx := context.Background()
+	var exist bool
+	var err error
+	if useCuckoo {
+		exist, err = rc.CFExist(ctx, productCuckooFilter, dummyItem)
+		if err != nil {
+			return nil, err
+		}
+		if !exist {
+			if err = rc.CFReserve(ctx, productCuckooFilter, config.RedisConfig.Cuckoo.Capacity, config.RedisConfig.Cuckoo.BucketSize, config.RedisConfig.Cuckoo.MaxIterations); err != nil {
+				return nil, err
+			}
+			if err = rc.CFAdd(ctx, productCuckooFilter, dummyItem); err != nil {
+				return nil, err
+			}
+			productRepoCache.logger.Infof("cuckoo filter created: key = %s", productCuckooFilter)
+		} else {
+			productRepoCache.logger.Infof("cuckoo filter already exists: key = %s", productCuckooFilter)
+		}
+	} else {
+		exist, err = rc.BFExist(ctx, productBloomFilter, dummyItem)
 		if err != nil {
 			return nil, err
 		}
@@ -65,7 +84,17 @@ func NewProductRepoCache(config *conf.Config, repo repo.ProductRepository, lc ca
 }
 
 func (c *ProductRepoCacheImpl) CheckProduct(ctx context.Context, cartItem *domain_model.CartItem) (*repo.ProductStatus, error) {
-	if c.useBloom {
+	if c.useCuckoo {
+		exist, err := c.rc.CFExist(ctx, productCuckooFilter, cartItem.ProductID)
+		c.logError(err)
+		if !exist && err == nil {
+			return &repo.ProductStatus{
+				ProductID: cartItem.ProductID,
+				Price:     0,
+				Exist:     false,
+			}, nil
+		}
+	} else {
 		exist, err := c.rc.BFExist(ctx, productBloomFilter, cartItem.ProductID)
 		c.logError(err)
 		if !exist && err == nil {
@@ -119,7 +148,13 @@ func (c *ProductRepoCacheImpl) ListProducts(ctx context.Context, offset, size in
 }
 
 func (c *ProductRepoCacheImpl) GetProductDetail(ctx context.Context, productID uint64) (*repo.ProductDetail, error) {
-	if c.useBloom {
+	if c.useCuckoo {
+		exist, err := c.rc.CFExist(ctx, productCuckooFilter, productID)
+		c.logError(err)
+		if !exist && err == nil {
+			return nil, repo.ErrProductNotFound
+		}
+	} else {
 		exist, err := c.rc.BFExist(ctx, productBloomFilter, productID)
 		c.logError(err)
 		if !exist && err == nil {
@@ -166,7 +201,13 @@ func (c *ProductRepoCacheImpl) GetProductDetail(ctx context.Context, productID u
 }
 
 func (c *ProductRepoCacheImpl) GetProductInventory(ctx context.Context, productID uint64) (int64, error) {
-	if c.useBloom {
+	if c.useCuckoo {
+		exist, err := c.rc.CFExist(ctx, productCuckooFilter, productID)
+		c.logError(err)
+		if !exist && err == nil {
+			return 0, repo.ErrProductNotFound
+		}
+	} else {
 		exist, err := c.rc.BFExist(ctx, productBloomFilter, productID)
 		c.logError(err)
 		if !exist && err == nil {
@@ -211,7 +252,9 @@ func (c *ProductRepoCacheImpl) CreateProduct(ctx context.Context, product *domai
 	if err != nil {
 		return 0, err
 	}
-	if c.useBloom {
+	if c.useCuckoo {
+		c.logError(c.rc.CFAdd(ctx, productCuckooFilter, productID))
+	} else {
 		c.logError(c.rc.BFAdd(ctx, productBloomFilter, productID))
 	}
 	return productID, nil

@@ -12,7 +12,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var paymentBloomFilter = "paymentbloom"
+var (
+	paymentBloomFilter  = "paymentbloom"
+	paymentCuckooFilter = "paymentcuckoo"
+)
 
 // PaymentRepoCache interface
 type PaymentRepoCache interface {
@@ -25,27 +28,45 @@ type PaymentRepoCache interface {
 type PaymentRepoCacheImpl struct {
 	paymentRepo repo.PaymentRepository
 	rc          cache.RedisCache
-	useBloom    bool
+	useCuckoo   bool
 	logger      *logrus.Entry
 }
 
 // NewPaymentRepoCache factory
 func NewPaymentRepoCache(config *conf.Config, repo repo.PaymentRepository, rc cache.RedisCache) (PaymentRepoCache, error) {
-	useBloom := config.RedisConfig.Bloom.Activate
+	useCuckoo := config.RedisConfig.UseCuckoo
 	paymentRepoCache := PaymentRepoCacheImpl{
 		paymentRepo: repo,
 		rc:          rc,
-		useBloom:    useBloom,
+		useCuckoo:   useCuckoo,
 		logger:      config.Logger.ContextLogger.WithField("type", "cache:PaymentRepoCache"),
 	}
-	if useBloom {
-		ctx := context.Background()
-		exist, err := rc.BFExist(ctx, paymentBloomFilter, "dummy")
+	ctx := context.Background()
+	var exist bool
+	var err error
+	if useCuckoo {
+		exist, err = rc.CFExist(ctx, paymentCuckooFilter, dummyItem)
 		if err != nil {
 			return nil, err
 		}
 		if !exist {
-			if err := rc.BFInsert(ctx, paymentBloomFilter, config.RedisConfig.Bloom.ErrorRate, config.RedisConfig.Bloom.Capacity, dummyItem); err != nil {
+			if err = rc.CFReserve(ctx, paymentCuckooFilter, config.RedisConfig.Cuckoo.Capacity, config.RedisConfig.Cuckoo.BucketSize, config.RedisConfig.Cuckoo.MaxIterations); err != nil {
+				return nil, err
+			}
+			if err = rc.CFAdd(ctx, paymentCuckooFilter, dummyItem); err != nil {
+				return nil, err
+			}
+			paymentRepoCache.logger.Infof("cuckoo filter created: key = %s", paymentCuckooFilter)
+		} else {
+			paymentRepoCache.logger.Infof("cuckoo filter already exists: key = %s", paymentCuckooFilter)
+		}
+	} else {
+		exist, err = rc.BFExist(ctx, paymentBloomFilter, dummyItem)
+		if err != nil {
+			return nil, err
+		}
+		if !exist {
+			if err = rc.BFInsert(ctx, paymentBloomFilter, config.RedisConfig.Bloom.ErrorRate, config.RedisConfig.Bloom.Capacity, dummyItem); err != nil {
 				return nil, err
 			}
 			paymentRepoCache.logger.Infof("bloom filter created: key = %s", paymentBloomFilter)
@@ -57,7 +78,13 @@ func NewPaymentRepoCache(config *conf.Config, repo repo.PaymentRepository, rc ca
 }
 
 func (c *PaymentRepoCacheImpl) GetPayment(ctx context.Context, paymentID uint64) (*domain_model.Payment, error) {
-	if c.useBloom {
+	if c.useCuckoo {
+		exist, err := c.rc.CFExist(ctx, paymentCuckooFilter, paymentID)
+		c.logError(err)
+		if !exist && err == nil {
+			return nil, repo.ErrPaymentNotFound
+		}
+	} else {
 		exist, err := c.rc.BFExist(ctx, paymentBloomFilter, paymentID)
 		c.logError(err)
 		if !exist && err == nil {
@@ -84,7 +111,9 @@ func (c *PaymentRepoCacheImpl) GetPayment(ctx context.Context, paymentID uint64)
 }
 
 func (c *PaymentRepoCacheImpl) CreatePayment(ctx context.Context, payment *domain_model.Payment) error {
-	if c.useBloom {
+	if c.useCuckoo {
+		c.logError(c.rc.CFAdd(ctx, paymentCuckooFilter, payment.ID))
+	} else {
 		c.logError(c.rc.BFAdd(ctx, paymentBloomFilter, payment.ID))
 	}
 	return c.paymentRepo.CreatePayment(ctx, payment)
@@ -97,6 +126,9 @@ func (c *PaymentRepoCacheImpl) DeletePayment(ctx context.Context, paymentID uint
 	}
 	key := pkg.Join("payment:", strconv.FormatUint(paymentID, 10))
 	c.logError(c.rc.Delete(ctx, key))
+	if c.useCuckoo {
+		c.logError(c.rc.CFDel(ctx, paymentCuckooFilter, paymentID))
+	}
 	return nil
 }
 

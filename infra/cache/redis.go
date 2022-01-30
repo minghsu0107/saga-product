@@ -33,6 +33,10 @@ type RedisCache interface {
 	BFInsert(ctx context.Context, key string, errorRate float64, capacity int64, items ...interface{}) error
 	BFAdd(ctx context.Context, key string, item interface{}) error
 	BFExist(ctx context.Context, key string, item interface{}) (bool, error)
+	CFReserve(ctx context.Context, key string, capacity int64, bucketSize, maxIterations int) error
+	CFAdd(ctx context.Context, key string, item interface{}) error
+	CFExist(ctx context.Context, key string, item interface{}) (bool, error)
+	CFDel(ctx context.Context, key string, item interface{}) error
 	IncrBy(ctx context.Context, key string, val int64) error
 	Delete(ctx context.Context, key string) error
 	GetMutex(mutexname string) *redsync.Mutex
@@ -208,6 +212,35 @@ func (rc *RedisCacheImpl) BFExist(ctx context.Context, key string, item interfac
 		return false, err
 	}
 	return (res == 1), nil
+}
+
+func (rc *RedisCacheImpl) CFReserve(ctx context.Context, key string, capacity int64, bucketSize, maxIterations int) error {
+	if err := rc.client.Do(ctx, "cf.reserve", key, capacity, "BUCKETSIZE", bucketSize, "MAXITERATIONS", maxIterations).Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (rc *RedisCacheImpl) CFAdd(ctx context.Context, key string, item interface{}) error {
+	if err := rc.client.Do(ctx, "cf.add", key, item).Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (rc *RedisCacheImpl) CFExist(ctx context.Context, key string, item interface{}) (bool, error) {
+	res, err := rc.client.Do(ctx, "cf.exists", key, item).Int()
+	if err != nil {
+		return false, err
+	}
+	return (res == 1), nil
+}
+
+func (rc *RedisCacheImpl) CFDel(ctx context.Context, key string, item interface{}) error {
+	if err := rc.client.Do(ctx, "cf.del", key, item).Err(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (rc *RedisCacheImpl) IncrBy(ctx context.Context, key string, val int64) error {

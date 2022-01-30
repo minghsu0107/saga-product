@@ -12,7 +12,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var orderBloomFilter = "orderbloom"
+var (
+	orderBloomFilter  = "orderbloom"
+	orderCuckooFilter = "ordercuckoo"
+)
 
 // OrderRepoCache interface
 type OrderRepoCache interface {
@@ -26,27 +29,45 @@ type OrderRepoCache interface {
 type OrderRepoCacheImpl struct {
 	orderRepo repo.OrderRepository
 	rc        cache.RedisCache
-	useBloom  bool
+	useCuckoo bool
 	logger    *logrus.Entry
 }
 
 // NewOrderRepoCache factory
 func NewOrderRepoCache(config *conf.Config, repo repo.OrderRepository, rc cache.RedisCache) (OrderRepoCache, error) {
-	useBloom := config.RedisConfig.Bloom.Activate
+	useCuckoo := config.RedisConfig.UseCuckoo
 	orderRepoCache := OrderRepoCacheImpl{
 		orderRepo: repo,
 		rc:        rc,
-		useBloom:  useBloom,
+		useCuckoo: useCuckoo,
 		logger:    config.Logger.ContextLogger.WithField("type", "cache:OrderRepoCache"),
 	}
-	if useBloom {
-		ctx := context.Background()
-		exist, err := rc.BFExist(ctx, orderBloomFilter, "dummy")
+	ctx := context.Background()
+	var exist bool
+	var err error
+	if useCuckoo {
+		exist, err = rc.CFExist(ctx, orderCuckooFilter, dummyItem)
 		if err != nil {
 			return nil, err
 		}
 		if !exist {
-			if err := rc.BFInsert(ctx, orderBloomFilter, config.RedisConfig.Bloom.ErrorRate, config.RedisConfig.Bloom.Capacity, dummyItem); err != nil {
+			if err = rc.CFReserve(ctx, orderCuckooFilter, config.RedisConfig.Cuckoo.Capacity, config.RedisConfig.Cuckoo.BucketSize, config.RedisConfig.Cuckoo.MaxIterations); err != nil {
+				return nil, err
+			}
+			if err = rc.CFAdd(ctx, orderCuckooFilter, dummyItem); err != nil {
+				return nil, err
+			}
+			orderRepoCache.logger.Infof("cuckoo filter created: key = %s", orderCuckooFilter)
+		} else {
+			orderRepoCache.logger.Infof("cuckoo filter already exists: key = %s", orderCuckooFilter)
+		}
+	} else {
+		exist, err = rc.BFExist(ctx, orderBloomFilter, dummyItem)
+		if err != nil {
+			return nil, err
+		}
+		if !exist {
+			if err = rc.BFInsert(ctx, orderBloomFilter, config.RedisConfig.Bloom.ErrorRate, config.RedisConfig.Bloom.Capacity, dummyItem); err != nil {
 				return nil, err
 			}
 			orderRepoCache.logger.Infof("bloom filter created: key = %s", orderBloomFilter)
@@ -58,7 +79,13 @@ func NewOrderRepoCache(config *conf.Config, repo repo.OrderRepository, rc cache.
 }
 
 func (c *OrderRepoCacheImpl) GetOrder(ctx context.Context, orderID uint64) (*domain_model.Order, error) {
-	if c.useBloom {
+	if c.useCuckoo {
+		exist, err := c.rc.CFExist(ctx, orderCuckooFilter, orderID)
+		c.logError(err)
+		if !exist && err == nil {
+			return nil, repo.ErrOrderNotFound
+		}
+	} else {
 		exist, err := c.rc.BFExist(ctx, orderBloomFilter, orderID)
 		c.logError(err)
 		if !exist && err == nil {
@@ -87,7 +114,9 @@ func (c *OrderRepoCacheImpl) GetDetailedPurchasedItems(ctx context.Context, purc
 }
 
 func (c *OrderRepoCacheImpl) CreateOrder(ctx context.Context, order *domain_model.Order) error {
-	if c.useBloom {
+	if c.useCuckoo {
+		c.logError(c.rc.CFAdd(ctx, orderCuckooFilter, order.ID))
+	} else {
 		c.logError(c.rc.BFAdd(ctx, orderBloomFilter, order.ID))
 	}
 	return c.orderRepo.CreateOrder(ctx, order)
@@ -100,6 +129,9 @@ func (c *OrderRepoCacheImpl) DeleteOrder(ctx context.Context, orderID uint64) er
 	}
 	key := pkg.Join("order:", strconv.FormatUint(orderID, 10))
 	c.logError(c.rc.Delete(ctx, key))
+	if c.useCuckoo {
+		c.logError(c.rc.CFDel(ctx, orderCuckooFilter, orderID))
+	}
 	return nil
 }
 
