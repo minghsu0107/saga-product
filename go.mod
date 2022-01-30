@@ -23,7 +23,7 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/minghsu0107/saga-pb v1.0.0
-	github.com/minghsu0107/watermill-redistream v0.0.0-20220123181006-bc41ddc9d435
+	github.com/minghsu0107/watermill-redistream v1.0.0
 	github.com/nats-io/stan.go v0.9.0
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0

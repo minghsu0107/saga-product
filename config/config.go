@@ -41,16 +41,17 @@ type LocalCacheConfig struct {
 
 // RedisConfig is redis config type
 type RedisConfig struct {
-	Addrs              string       `yaml:"addrs" envconfig:"REDIS_ADDRS"`
-	Password           string       `yaml:"password" envconfig:"REDIS_PASSWORD"`
-	DB                 int          `yaml:"db" envconfig:"REDIS_DB"`
-	PoolSize           int          `yaml:"poolSize" envconfig:"REDIS_POOL_SIZE"`
-	MaxRetries         int          `yaml:"maxRetries" envconfig:"REDIS_MAX_RETRIES"`
-	ExpirationSeconds  int64        `yaml:"expirationSeconds" envconfig:"REDIS_EXPIRATION_SECONDS"`
-	IdleTimeoutSeconds int64        `yaml:"idleTimeoutSeconds" envconfig:"REDIS_IDLE_TIMEOUT_SECONDS"`
-	UseCuckoo          bool         `yaml:"useCuckoo" envconfig:"REDIS_USE_CUCKOO"`
-	Cuckoo             *RedisCuckoo `yaml:"cuckoo"`
-	Bloom              *RedisBloom  `yaml:"bloom"`
+	Addrs              string          `yaml:"addrs" envconfig:"REDIS_ADDRS"`
+	Password           string          `yaml:"password" envconfig:"REDIS_PASSWORD"`
+	DB                 int             `yaml:"db" envconfig:"REDIS_DB"`
+	PoolSize           int             `yaml:"poolSize" envconfig:"REDIS_POOL_SIZE"`
+	MaxRetries         int             `yaml:"maxRetries" envconfig:"REDIS_MAX_RETRIES"`
+	ExpirationSeconds  int64           `yaml:"expirationSeconds" envconfig:"REDIS_EXPIRATION_SECONDS"`
+	IdleTimeoutSeconds int64           `yaml:"idleTimeoutSeconds" envconfig:"REDIS_IDLE_TIMEOUT_SECONDS"`
+	UseCuckoo          bool            `yaml:"useCuckoo" envconfig:"REDIS_USE_CUCKOO"`
+	Cuckoo             *RedisCuckoo    `yaml:"cuckoo"`
+	Bloom              *RedisBloom     `yaml:"bloom"`
+	Publisher          *RedisPublisher `yaml:"publisher"`
 }
 
 // RedisBloom filter config
@@ -64,6 +65,11 @@ type RedisCuckoo struct {
 	Capacity      int64 `yaml:"capacity" envconfig:"REDIS_CUCKOO_CAPACITY"`
 	BucketSize    int   `yaml:"bucketSize" envconfig:"REDIS_CUCKOO_BUCKET_SIZE"`
 	MaxIterations int   `yaml:"maxIterations" envconfig:"REDIS_CUCKOO_MAX_ITERATIONS"`
+}
+
+// RedisPublisher config
+type RedisPublisher struct {
+	PurchaseResultTopicMaxlen int64 `yaml:"purchaseResultTopicMaxlen" envconfig:"REDIS_PUBLISHER_PURCHASE_RESULT_TOPIC_MAXLEN"`
 }
 
 // NATSConfig wraps NATS client configurations

@@ -40,7 +40,12 @@ func NewRedisPublisher(config *conf.Config) (RedisPublisher, error) {
 	}
 	config.Logger.ContextLogger.WithField("type", "setup:redis").Info("successful redis connection: " + pong)
 
-	ResultPublisher, err = redistream.NewPublisher(ctx, RedisClient, &redistream.DefaultMarshaler{}, logger)
+	publisherConfig := redistream.PublisherConfig{
+		Maxlens: map[string]int64{
+			conf.PurchaseResultTopic: config.RedisConfig.Publisher.PurchaseResultTopicMaxlen,
+		},
+	}
+	ResultPublisher, err = redistream.NewPublisher(ctx, publisherConfig, RedisClient, &redistream.DefaultMarshaller{}, logger)
 	if err != nil {
 		return nil, err
 	}

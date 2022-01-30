@@ -27,6 +27,8 @@ redisConfig:
     # 0.01% error rate requires 14 hash functions and 20.16 bits per item
     errorRate: 0.0001
     capacity: 600000
+  publisher:
+    purchaseResultTopicMaxlen: 5000
 natsConfig:
   clusterID: "test-cluster"
   url: "nats://127.0.0.1:4222"

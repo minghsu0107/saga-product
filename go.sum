@@ -401,8 +401,8 @@ github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5
 github.com/miekg/dns v1.0.14/go.mod h1:W1PPwlIAgtquWBMBEV9nkV9Cazfe8ScdGz/Lj7v3Nrg=
 github.com/minghsu0107/saga-pb v1.0.0 h1:Y4rS7g6vT8HEkOA3JNzSdITtQEzsksUbNVTzfM0RJcE=
 github.com/minghsu0107/saga-pb v1.0.0/go.mod h1:z0wJfSnzOY0CzWXikeWFIYPxz1QsAzNU5Hzr56E19Lo=
-github.com/minghsu0107/watermill-redistream v0.0.0-20220123181006-bc41ddc9d435 h1:w0xY9WRk64ZXW/o8zQwd5cX3KwMMx7retmYyBuHSDxU=
-github.com/minghsu0107/watermill-redistream v0.0.0-20220123181006-bc41ddc9d435/go.mod h1:qs41uYzo2KmHRai50WQ4qNUjtMG14Q+qOjDsZ9iCK38=
+github.com/minghsu0107/watermill-redistream v1.0.0 h1:hapb10ZdbDExpkdWnrNbxVLo0NHB5LkvGl2thYurHLo=
+github.com/minghsu0107/watermill-redistream v1.0.0/go.mod h1:qs41uYzo2KmHRai50WQ4qNUjtMG14Q+qOjDsZ9iCK38=
 github.com/mitchellh/cli v1.0.0/go.mod h1:hNIlj7HEI86fIcpObd7a0FcrxTWetlwJDGcceTlRvqc=
 github.com/mitchellh/go-homedir v1.0.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
 github.com/mitchellh/go-testing-interface v1.0.0/go.mod h1:kRemZodwjscx+RGhAo8eIhFbs2+BFgRtFPeD/KE+zxI=
