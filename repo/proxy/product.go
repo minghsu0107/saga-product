@@ -84,6 +84,15 @@ func NewProductRepoCache(config *conf.Config, repo repo.ProductRepository, lc ca
 }
 
 func (c *ProductRepoCacheImpl) CheckProduct(ctx context.Context, cartItem *domain_model.CartItem) (*repo.ProductStatus, error) {
+	status := &repo.ProductStatus{}
+	key := pkg.Join("productcheck:", strconv.FormatUint(cartItem.ProductID, 10))
+
+	ok, err := c.lc.Get(key, status)
+	c.logError(err)
+	if ok && err == nil {
+		return status, nil
+	}
+
 	if c.useCuckoo {
 		exist, err := c.rc.CFExist(ctx, productCuckooFilter, cartItem.ProductID)
 		c.logError(err)
@@ -104,14 +113,6 @@ func (c *ProductRepoCacheImpl) CheckProduct(ctx context.Context, cartItem *domai
 				Exist:     false,
 			}, nil
 		}
-	}
-	status := &repo.ProductStatus{}
-	key := pkg.Join("productcheck:", strconv.FormatUint(cartItem.ProductID, 10))
-
-	ok, err := c.lc.Get(key, status)
-	c.logError(err)
-	if ok && err == nil {
-		return status, nil
 	}
 
 	ok, err = c.rc.Get(ctx, key, status)
@@ -148,6 +149,15 @@ func (c *ProductRepoCacheImpl) ListProducts(ctx context.Context, offset, size in
 }
 
 func (c *ProductRepoCacheImpl) GetProductDetail(ctx context.Context, productID uint64) (*repo.ProductDetail, error) {
+	detail := &repo.ProductDetail{}
+	key := pkg.Join("productdetail:", strconv.FormatUint(productID, 10))
+
+	ok, err := c.lc.Get(key, detail)
+	c.logError(err)
+	if ok && err == nil {
+		return detail, nil
+	}
+
 	if c.useCuckoo {
 		exist, err := c.rc.CFExist(ctx, productCuckooFilter, productID)
 		c.logError(err)
@@ -160,15 +170,6 @@ func (c *ProductRepoCacheImpl) GetProductDetail(ctx context.Context, productID u
 		if !exist && err == nil {
 			return nil, repo.ErrProductNotFound
 		}
-	}
-
-	detail := &repo.ProductDetail{}
-	key := pkg.Join("productdetail:", strconv.FormatUint(productID, 10))
-
-	ok, err := c.lc.Get(key, detail)
-	c.logError(err)
-	if ok && err == nil {
-		return detail, nil
 	}
 
 	ok, err = c.rc.Get(ctx, key, detail)
