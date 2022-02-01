@@ -53,11 +53,11 @@ func InitializeProductServer() (*infra.ProductServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	clusterClient, err := cache.NewRedisClient(configConfig)
+	universalClient, err := cache.NewRedisClient(configConfig)
 	if err != nil {
 		return nil, err
 	}
-	redisCache := cache.NewRedisCache(configConfig, clusterClient)
+	redisCache := cache.NewRedisCache(configConfig, universalClient)
 	productRepoCache, err := proxy.NewProductRepoCache(configConfig, productRepository, localCache, redisCache)
 	if err != nil {
 		return nil, err
@@ -102,11 +102,11 @@ func InitializeOrderServer() (*infra.OrderServer, error) {
 		return nil, err
 	}
 	orderRepository := repo.NewOrderRepository(configConfig, productConn, gormDB)
-	clusterClient, err := cache.NewRedisClient(configConfig)
+	universalClient, err := cache.NewRedisClient(configConfig)
 	if err != nil {
 		return nil, err
 	}
-	redisCache := cache.NewRedisCache(configConfig, clusterClient)
+	redisCache := cache.NewRedisCache(configConfig, universalClient)
 	orderRepoCache, err := proxy.NewOrderRepoCache(configConfig, orderRepository, redisCache)
 	if err != nil {
 		return nil, err
@@ -152,11 +152,11 @@ func InitializePaymentServer() (*infra.PaymentServer, error) {
 		return nil, err
 	}
 	paymentRepository := repo.NewPaymentRepository(gormDB)
-	clusterClient, err := cache.NewRedisClient(configConfig)
+	universalClient, err := cache.NewRedisClient(configConfig)
 	if err != nil {
 		return nil, err
 	}
-	redisCache := cache.NewRedisCache(configConfig, clusterClient)
+	redisCache := cache.NewRedisCache(configConfig, universalClient)
 	paymentRepoCache, err := proxy.NewPaymentRepoCache(configConfig, paymentRepository, redisCache)
 	if err != nil {
 		return nil, err

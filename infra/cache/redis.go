@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	RedisClient *redis.ClusterClient
+	RedisClient redis.UniversalClient
 	//ErrRedisUnlockFail is redis unlock fail error
 	ErrRedisUnlockFail = errors.New("redis unlock fail")
 	// ErrRedisCmdNotFound is redis command not found error
@@ -46,7 +46,7 @@ type RedisCache interface {
 
 // RedisCacheImpl is the redis cache client type
 type RedisCacheImpl struct {
-	client     *redis.ClusterClient
+	client     redis.UniversalClient
 	rs         *redsync.Redsync
 	expiration int64
 }
@@ -109,7 +109,7 @@ type RedisPipelineCmd struct {
 	Cmd    interface{}
 }
 
-func NewRedisClient(config *config.Config) (*redis.ClusterClient, error) {
+func NewRedisClient(config *config.Config) (redis.UniversalClient, error) {
 	RedisClient = redis.NewClusterClient(&redis.ClusterOptions{
 		Addrs:         getServerAddrs(config.RedisConfig.Addrs),
 		Password:      config.RedisConfig.Password,
@@ -129,7 +129,7 @@ func NewRedisClient(config *config.Config) (*redis.ClusterClient, error) {
 }
 
 // NewRedisCache is the factory of redis cache
-func NewRedisCache(config *config.Config, client *redis.ClusterClient) RedisCache {
+func NewRedisCache(config *config.Config, client redis.UniversalClient) RedisCache {
 	pool := goredis.NewPool(client)
 	rs := redsync.New(pool)
 
