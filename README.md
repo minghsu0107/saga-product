@@ -9,7 +9,7 @@ Features:
 - Redis cache for fast data retrieval
 - Bloom/Cuckoo filters for preventing cache penatration
 - Prometheus metrics
-- Distributed tracing exporter
+- Distributed tracing with [OpenTelemetry](https://opentelemetry.io)
   - HTTP server
   - gRPC server
   - gPRC client
