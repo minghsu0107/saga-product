@@ -7,6 +7,7 @@ import (
 	conf "github.com/minghsu0107/saga-product/config"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
+	propjaeger "go.opentelemetry.io/contrib/propagators/jaeger"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/jaeger"
 	"go.opentelemetry.io/otel/propagation"
@@ -46,7 +47,7 @@ func (injector *ObservibilityInjector) Register(errs chan error) {
 			errs <- err
 		}
 		otel.SetTracerProvider(TracerProvider)
-		otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
+		otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propjaeger.Jaeger{}, propagation.Baggage{}))
 	}
 	if injector.promPort != "" {
 		go func() {

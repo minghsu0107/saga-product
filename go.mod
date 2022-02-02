@@ -34,6 +34,7 @@ require (
 	github.com/ugorji/go v1.2.5 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.28.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.28.0
+	go.opentelemetry.io/contrib/propagators/jaeger v1.3.0
 	go.opentelemetry.io/otel v1.3.0
 	go.opentelemetry.io/otel/exporters/jaeger v1.3.0
 	go.opentelemetry.io/otel/sdk v1.3.0
