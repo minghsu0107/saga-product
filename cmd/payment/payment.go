@@ -12,8 +12,6 @@ import (
 )
 
 func RunPaymentServer(app string) {
-	errs := make(chan error, 1)
-
 	migrator, err := dep.InitializeMigrator(app)
 	if err != nil {
 		log.Fatal(err)
@@ -27,6 +25,7 @@ func RunPaymentServer(app string) {
 		log.Fatal(err)
 	}
 
+	errs := make(chan error, 1)
 	go func() {
 		errs <- server.Run()
 	}()

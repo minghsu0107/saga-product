@@ -12,13 +12,12 @@ import (
 )
 
 func RunOrchestratorServer(app string) {
-	errs := make(chan error, 1)
-
 	server, err := dep.InitializeOrchestratorServer()
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	errs := make(chan error, 1)
 	go func() {
 		errs <- server.Run()
 	}()
