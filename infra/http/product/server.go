@@ -13,7 +13,6 @@ import (
 	metrics "github.com/slok/go-http-metrics/metrics/prometheus"
 	prommiddleware "github.com/slok/go-http-metrics/middleware"
 	ginmiddleware "github.com/slok/go-http-metrics/middleware/gin"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 // ProductServer implementation
@@ -76,7 +75,7 @@ func (s *ProductServer) Run() error {
 	addr := ":" + s.Port
 	s.svr = &http.Server{
 		Addr:    addr,
-		Handler: otelhttp.NewHandler(s.Engine, s.App+"_http"),
+		Handler: infra_http.NewOtelHandler(s.Engine, s.App+"_http"),
 	}
 	log.Infoln("http server listening on ", addr)
 	err := s.svr.ListenAndServe()
