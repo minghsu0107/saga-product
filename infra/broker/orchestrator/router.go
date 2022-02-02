@@ -24,6 +24,7 @@ func (h *OrchestratorHandler) StartTransaction(msg *message.Message) error {
 	}
 	correlationID := msg.Metadata.Get(middleware.CorrelationIDMetadataKey)
 	carrier := new(propagation.HeaderCarrier)
+	carrier.Set(broker.TraceparentHeader, msg.Metadata.Get(conf.SpanContextKey))
 	parentCtx := broker.TraceContext.Extract(context.Background(), carrier)
 	return h.svc.StartTransaction(parentCtx, purchase, correlationID)
 }
@@ -31,6 +32,7 @@ func (h *OrchestratorHandler) StartTransaction(msg *message.Message) error {
 func (h *OrchestratorHandler) HandleReply(msg *message.Message) error {
 	correlationID := msg.Metadata.Get(middleware.CorrelationIDMetadataKey)
 	carrier := new(propagation.HeaderCarrier)
+	carrier.Set(broker.TraceparentHeader, msg.Metadata.Get(conf.SpanContextKey))
 	parentCtx := broker.TraceContext.Extract(context.Background(), carrier)
 	return h.svc.HandleReply(parentCtx, msg, correlationID)
 }

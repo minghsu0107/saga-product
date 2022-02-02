@@ -24,6 +24,7 @@ type SagaPaymentHandler struct {
 // CreatePayment handler
 func (h *SagaPaymentHandler) CreatePayment(msg *message.Message) ([]*message.Message, error) {
 	carrier := new(propagation.HeaderCarrier)
+	carrier.Set(broker.TraceparentHeader, msg.Metadata.Get(conf.SpanContextKey))
 	parentCtx := broker.TraceContext.Extract(context.Background(), carrier)
 	tr := otel.Tracer("createPayment")
 	ctx, span := tr.Start(parentCtx, "event.CreatePayment")
@@ -61,6 +62,7 @@ func (h *SagaPaymentHandler) CreatePayment(msg *message.Message) ([]*message.Mes
 
 func (h *SagaPaymentHandler) RollbackPayment(msg *message.Message) ([]*message.Message, error) {
 	carrier := new(propagation.HeaderCarrier)
+	carrier.Set(broker.TraceparentHeader, msg.Metadata.Get(conf.SpanContextKey))
 	parentCtx := broker.TraceContext.Extract(context.Background(), carrier)
 	tr := otel.Tracer("rollbackPayment")
 	ctx, span := tr.Start(parentCtx, "event.RollbackPayment")

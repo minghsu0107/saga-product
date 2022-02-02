@@ -56,13 +56,13 @@ func (svc *OrchestratorServiceImpl) StartTransaction(parentCtx context.Context, 
 		return err
 	}
 	msg := message.NewMessage(watermill.NewUUID(), payload)
-	middleware.SetCorrelationID(correlationID, msg)
 	svc.publishPurchaseResult(ctx, &event.PurchaseResult{
 		CustomerID: purchase.Order.CustomerID,
 		PurchaseID: purchase.ID,
 		Step:       event.StepUpdateProductInventory,
 		Status:     event.StatusExecute,
 	}, correlationID)
+	middleware.SetCorrelationID(correlationID, msg)
 	svc.logger.Infof("update product inventory %v", purchase.ID)
 	return svc.publishMessage(ctx, conf.UpdateProductInventoryTopic, msg, TX_MSG)
 }

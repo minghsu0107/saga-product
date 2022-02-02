@@ -15,6 +15,7 @@ import (
 
 var (
 	TraceContext        = propagation.TraceContext{}
+	TraceparentHeader   = TraceContext.Fields()[0]
 	W3CSupportedVersion = 0
 )
 
