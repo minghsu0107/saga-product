@@ -12,8 +12,8 @@ import (
 	"github.com/minghsu0107/saga-product/infra/broker"
 	"github.com/minghsu0107/saga-product/pkg"
 	"github.com/minghsu0107/saga-product/service/order"
-	"go.opencensus.io/trace"
-	"go.opencensus.io/trace/propagation"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 // SagaOrderHandler handler
@@ -23,8 +23,10 @@ type SagaOrderHandler struct {
 
 // CreateOrder handler
 func (h *SagaOrderHandler) CreateOrder(msg *message.Message) ([]*message.Message, error) {
-	sc, _ := propagation.FromBinary([]byte(msg.Metadata.Get(conf.SpanContextKey)))
-	_, span := trace.StartSpanWithRemoteParent(context.Background(), "event.CreateOrder", sc)
+	carrier := new(propagation.HeaderCarrier)
+	parentCtx := broker.TraceContext.Extract(context.Background(), carrier)
+	tr := otel.Tracer("createOrder")
+	ctx, span := tr.Start(parentCtx, "event.CreateOrder")
 	defer span.End()
 
 	purchase, pbPurchase, err := broker.DecodeCreatePurchaseCmd(msg.Payload)
@@ -51,15 +53,17 @@ func (h *SagaOrderHandler) CreateOrder(msg *message.Message) ([]*message.Message
 	}
 	var replyMsgs []*message.Message
 	replyMsg := message.NewMessage(watermill.NewUUID(), payload)
-	broker.SetSpanContext(replyMsg, span)
+	broker.SetSpanContext(ctx, replyMsg)
 	replyMsg.Metadata.Set(conf.HandlerHeader, conf.CreateOrderHandler)
 	replyMsgs = append(replyMsgs, replyMsg)
 	return replyMsgs, nil
 }
 
 func (h *SagaOrderHandler) RollbackOrder(msg *message.Message) ([]*message.Message, error) {
-	sc, _ := propagation.FromBinary([]byte(msg.Metadata.Get(conf.SpanContextKey)))
-	_, span := trace.StartSpanWithRemoteParent(context.Background(), "event.RollbackOrder", sc)
+	carrier := new(propagation.HeaderCarrier)
+	parentCtx := broker.TraceContext.Extract(context.Background(), carrier)
+	tr := otel.Tracer("rollbackOrder")
+	ctx, span := tr.Start(parentCtx, "event.RollbackOrder")
 	defer span.End()
 
 	var cmd pb.RollbackCmd
@@ -87,7 +91,7 @@ func (h *SagaOrderHandler) RollbackOrder(msg *message.Message) ([]*message.Messa
 	}
 	var replyMsgs []*message.Message
 	replyMsg := message.NewMessage(watermill.NewUUID(), payload)
-	broker.SetSpanContext(replyMsg, span)
+	broker.SetSpanContext(ctx, replyMsg)
 	replyMsg.Metadata.Set(conf.HandlerHeader, conf.RollbackOrderHandler)
 	replyMsgs = append(replyMsgs, replyMsg)
 	return replyMsgs, nil

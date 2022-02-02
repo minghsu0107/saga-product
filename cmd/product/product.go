@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"github.com/minghsu0107/saga-product/dep"
-	"github.com/minghsu0107/saga-product/infra/broker"
-	"github.com/minghsu0107/saga-product/infra/cache"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -28,9 +26,6 @@ func RunProductServer(app string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer cache.RedisClient.Close()
-	defer broker.TxPublisher.Close()
-	defer broker.TxSubscriber.Close()
 
 	go func() {
 		errs <- server.Run()

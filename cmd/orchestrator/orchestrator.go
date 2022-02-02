@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/minghsu0107/saga-product/dep"
-	"github.com/minghsu0107/saga-product/infra/broker"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -19,9 +18,6 @@ func RunOrchestratorServer(app string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer broker.TxPublisher.Close()
-	defer broker.ResultPublisher.Close()
-	defer broker.TxSubscriber.Close()
 
 	go func() {
 		errs <- server.Run()

@@ -8,10 +8,6 @@ import (
 	"time"
 
 	"github.com/minghsu0107/saga-product/dep"
-	"github.com/minghsu0107/saga-product/infra/broker"
-	"github.com/minghsu0107/saga-product/infra/cache"
-	grpc_auth "github.com/minghsu0107/saga-product/infra/grpc/auth"
-	grpc_order "github.com/minghsu0107/saga-product/infra/grpc/order"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -30,11 +26,6 @@ func RunOrderServer(app string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer cache.RedisClient.Close()
-	defer broker.TxPublisher.Close()
-	defer broker.TxSubscriber.Close()
-	defer grpc_auth.AuthClientConn.Conn.Close()
-	defer grpc_order.ProductClientConn.Conn.Close()
 
 	go func() {
 		errs <- server.Run()

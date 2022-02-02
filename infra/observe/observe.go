@@ -4,22 +4,27 @@ import (
 	"fmt"
 	"net/http"
 
-	"contrib.go.opencensus.io/exporter/ocagent"
 	conf "github.com/minghsu0107/saga-product/config"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
-	"go.opencensus.io/trace"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/sdk/resource"
+	tracesdk "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 )
 
+var TracerProvider *tracesdk.TracerProvider
+
 type ObservibilityInjector struct {
-	promPort    string
-	ocagentHost string
-	app         string
+	promPort  string
+	jaegerUrl string
+	app       string
 }
 
 func NewObservibilityInjector(config *conf.Config) (*ObservibilityInjector, error) {
 	promPort := config.PromPort
-	ocagentHost := config.OcAgentHost
+	jaegerUrl := config.JaegerUrl
 	app := config.App
 
 	if app == "" {
@@ -27,22 +32,19 @@ func NewObservibilityInjector(config *conf.Config) (*ObservibilityInjector, erro
 	}
 
 	return &ObservibilityInjector{
-		promPort:    promPort,
-		ocagentHost: ocagentHost,
-		app:         app,
+		promPort:  promPort,
+		jaegerUrl: jaegerUrl,
+		app:       app,
 	}, nil
 }
 
 func (injector *ObservibilityInjector) Register(errs chan error) {
-	if injector.ocagentHost != "" {
-		oce, err := ocagent.NewExporter(
-			ocagent.WithInsecure(),
-			ocagent.WithAddress(injector.ocagentHost),
-			ocagent.WithServiceName(injector.app))
+	if injector.jaegerUrl != "" {
+		err := initTracerProvider(injector.jaegerUrl, injector.app)
 		if err != nil {
-			log.Fatalf("failed to create ocagent-exporter: %v", err)
+			errs <- err
 		}
-		trace.RegisterExporter(oce)
+		otel.SetTracerProvider(TracerProvider)
 	}
 	if injector.promPort != "" {
 		go func() {
@@ -50,4 +52,21 @@ func (injector *ObservibilityInjector) Register(errs chan error) {
 			errs <- http.ListenAndServe(fmt.Sprintf(":%s", injector.promPort), promhttp.Handler())
 		}()
 	}
+}
+
+func initTracerProvider(jaegerUrl, serviceName string) error {
+	exp, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(jaegerUrl)))
+	if err != nil {
+		return err
+	}
+	TracerProvider = tracesdk.NewTracerProvider(
+		// Always be sure to batch in production.
+		tracesdk.WithBatcher(exp),
+		// Record information about this application in a Resource.
+		tracesdk.WithResource(resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceNameKey.String(serviceName),
+		)),
+	)
+	return nil
 }

@@ -20,7 +20,7 @@ type ProductConn struct {
 // NewProductConn returns a grpc client connection for ProductRepository
 func NewProductConn(config *conf.Config) (*ProductConn, error) {
 	log.Info("connecting to grpc product service...")
-	conn, err := infra_grpc.InitializeClient(config.RPCEndpoints.ProductSvcHost, config.OcAgentHost)
+	conn, err := infra_grpc.InitializeClient(config.RPCEndpoints.ProductSvcHost)
 	if err != nil {
 		return nil, err
 	}

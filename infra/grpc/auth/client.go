@@ -20,7 +20,7 @@ type AuthConn struct {
 // NewAuthConn returns a grpc client connection for AuthRepository
 func NewAuthConn(config *conf.Config) (*AuthConn, error) {
 	log.Info("connecting to grpc auth service...")
-	conn, err := infra_grpc.InitializeClient(config.RPCEndpoints.AuthSvcHost, config.OcAgentHost)
+	conn, err := infra_grpc.InitializeClient(config.RPCEndpoints.AuthSvcHost)
 	if err != nil {
 		return nil, err
 	}

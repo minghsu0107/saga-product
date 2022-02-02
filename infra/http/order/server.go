@@ -13,11 +13,12 @@ import (
 	metrics "github.com/slok/go-http-metrics/metrics/prometheus"
 	prommiddleware "github.com/slok/go-http-metrics/middleware"
 	ginmiddleware "github.com/slok/go-http-metrics/middleware/gin"
-	"go.opencensus.io/plugin/ochttp"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 // OrderServer implementation
 type OrderServer struct {
+	App            string
 	Port           string
 	Engine         *gin.Engine
 	Router         *Router
@@ -53,6 +54,7 @@ func NewEngine(config *conf.Config) *gin.Engine {
 // NewOrderServer is the factory of order server
 func NewOrderServer(config *conf.Config, engine *gin.Engine, router *Router, jwtAuthChecker *middleware.JWTAuthChecker) infra_http.Server {
 	return &OrderServer{
+		App:            config.App,
 		Port:           config.HTTPPort,
 		Engine:         engine,
 		Router:         router,
@@ -76,14 +78,7 @@ func (s *OrderServer) Run() error {
 	s.svr = &http.Server{
 		Addr: addr,
 		// default propagation format: B3
-		Handler: &ochttp.Handler{
-			Handler: s.Engine,
-			// IsHealthEndpoint holds the function to use for determining if the
-			// incoming HTTP request should be considered a health check. This is in
-			// addition to the private isHealthEndpoint func which may also indicate
-			// tracing should be skipped.
-			// IsHealthEndpoint: nil,
-		},
+		Handler: otelhttp.NewHandler(s.Engine, s.App+"_http"),
 	}
 	log.Infoln("http server listening on ", addr)
 	err := s.svr.ListenAndServe()

@@ -17,7 +17,7 @@ type Config struct {
 	HTTPPort         string            `yaml:"httpPort" envconfig:"HTTP_PORT"`
 	GRPCPort         string            `yaml:"grpcPort" envconfig:"GRPC_PORT"`
 	PromPort         string            `yaml:"promPort" envconfig:"PROM_PORT"`
-	OcAgentHost      string            `yaml:"ocAgentHost" envconfig:"OC_AGENT_HOST"`
+	JaegerUrl        string            `yaml:"jaegerUrl" envconfig:"JAEGER_URL"`
 	DBConfig         *DBConfig         `yaml:"dbConfig"`
 	LocalCacheConfig *LocalCacheConfig `yaml:"localCacheConfig"`
 	RedisConfig      *RedisConfig      `yaml:"redisConfig"`

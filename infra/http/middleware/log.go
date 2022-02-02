@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	TraceIDHeader = "X-B3-TraceId"
+	JaegerHeader = "Uber-Trace-Id"
 )
 
 // LogMiddleware is the logging middleware
@@ -24,8 +24,6 @@ func LogMiddleware(logger *log.Entry) gin.HandlerFunc {
 		// Stop timer
 		duration := GetDurationInMillseconds(start)
 
-		traceID := c.Request.Header.Get(TraceIDHeader)
-
 		entry := logger.WithFields(log.Fields{
 			"type":         "router",
 			"client_ip":    GetClientIP(c),
@@ -34,7 +32,7 @@ func LogMiddleware(logger *log.Entry) gin.HandlerFunc {
 			"path":         c.Request.RequestURI,
 			"status":       c.Writer.Status(),
 			"referrer":     c.Request.Referer(),
-			"traceID":      traceID,
+			"traceID":      GetTraceID(c),
 		})
 
 		if c.Writer.Status() >= 500 {
@@ -43,6 +41,15 @@ func LogMiddleware(logger *log.Entry) gin.HandlerFunc {
 			entry.Info("")
 		}
 	}
+}
+
+func GetTraceID(c *gin.Context) string {
+	identifier := c.Request.Header.Get(JaegerHeader)
+	vals := strings.Split(identifier, ":")
+	if len(vals) == 4 {
+		return vals[0]
+	}
+	return ""
 }
 
 // GetClientIP gets the correct IP for the end client instead of the proxy

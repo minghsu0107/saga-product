@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"go.opencensus.io/plugin/ocgrpc"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
@@ -20,7 +20,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func InitializeServer(ocAgentHost string, logrusEntry *log.Entry) *grpc.Server {
+func InitializeServer(logrusEntry *log.Entry) *grpc.Server {
 	opts := []grpc.ServerOption{
 		grpc.MaxRecvMsgSize(1024 * 1024 * 8), // increase to 8 MB (default: 4 MB)
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
@@ -34,9 +34,6 @@ func InitializeServer(ocAgentHost string, logrusEntry *log.Entry) *grpc.Server {
 			Time:                  5 * time.Second,   // ping the client if it is idle for 5 seconds to ensure the connection is still active
 			Timeout:               1 * time.Second,   // wait 1 second for the ping ack before assuming the connection is dead
 		}),
-	}
-	if ocAgentHost != "" {
-		opts = append(opts, grpc.StatsHandler(&ocgrpc.ServerHandler{}))
 	}
 
 	grpc_prometheus.EnableHandlingTimeHistogram()
@@ -57,12 +54,14 @@ func InitializeServer(ocAgentHost string, logrusEntry *log.Entry) *grpc.Server {
 	opts = append(opts,
 		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
 			grpc_prometheus.StreamServerInterceptor,
+			otelgrpc.StreamServerInterceptor(),
 			grpc_ctxtags.StreamServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
 			grpc_logrus.StreamServerInterceptor(logrusEntry, grpcOpts...),
 			grpc_recovery.StreamServerInterceptor(recoveryOpts...),
 		)),
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
 			grpc_prometheus.UnaryServerInterceptor,
+			otelgrpc.UnaryServerInterceptor(),
 			grpc_ctxtags.UnaryServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
 			grpc_logrus.UnaryServerInterceptor(logrusEntry, grpcOpts...),
 			LogTraceUnary(),
@@ -72,7 +71,7 @@ func InitializeServer(ocAgentHost string, logrusEntry *log.Entry) *grpc.Server {
 	return grpc.NewServer(opts...)
 }
 
-func InitializeClient(svcHost, ocAgentHost string) (*grpc.ClientConn, error) {
+func InitializeClient(svcHost string) (*grpc.ClientConn, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -88,10 +87,6 @@ func InitializeClient(svcHost, ocAgentHost string) (*grpc.ClientConn, error) {
 		grpc.WithInsecure(),
 	}
 
-	if ocAgentHost != "" {
-		dialOpts = append(dialOpts, grpc.WithStatsHandler(new(ocgrpc.ClientHandler)))
-	}
-
 	dialOpts = append(dialOpts,
 		grpc.WithDisableServiceConfig(),
 		grpc.WithDefaultServiceConfig(`{
@@ -102,8 +97,14 @@ func InitializeClient(svcHost, ocAgentHost string) (*grpc.ClientConn, error) {
 			Timeout:             time.Second,      // wait 1 second for ping ack before considering the connection dead
 			PermitWithoutStream: true,             // send pings even without active streams
 		}),
-		grpc.WithStreamInterceptor(grpc_retry.StreamClientInterceptor(retryOpts...)),
-		grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...)),
+		grpc.WithStreamInterceptor(grpc_middleware.ChainStreamClient(
+			otelgrpc.StreamClientInterceptor(),
+			grpc_retry.StreamClientInterceptor(retryOpts...),
+		)),
+		grpc.WithUnaryInterceptor(grpc_middleware.ChainUnaryClient(
+			otelgrpc.UnaryClientInterceptor(),
+			grpc_retry.UnaryClientInterceptor(retryOpts...),
+		)),
 		//grpc.WithBlock(),
 	)
 

@@ -8,7 +8,7 @@ import (
 	conf "github.com/minghsu0107/saga-product/config"
 	"github.com/minghsu0107/saga-product/infra/broker"
 	"github.com/minghsu0107/saga-product/service/orchestrator"
-	"go.opencensus.io/trace/propagation"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 // OrchestratorHandler handler
@@ -23,14 +23,16 @@ func (h *OrchestratorHandler) StartTransaction(msg *message.Message) error {
 		return err
 	}
 	correlationID := msg.Metadata.Get(middleware.CorrelationIDMetadataKey)
-	sc, _ := propagation.FromBinary([]byte(msg.Metadata.Get(conf.SpanContextKey)))
-	return h.svc.StartTransaction(sc, purchase, correlationID)
+	carrier := new(propagation.HeaderCarrier)
+	parentCtx := broker.TraceContext.Extract(context.Background(), carrier)
+	return h.svc.StartTransaction(parentCtx, purchase, correlationID)
 }
 
 func (h *OrchestratorHandler) HandleReply(msg *message.Message) error {
 	correlationID := msg.Metadata.Get(middleware.CorrelationIDMetadataKey)
-	sc, _ := propagation.FromBinary([]byte(msg.Metadata.Get(conf.SpanContextKey)))
-	return h.svc.HandleReply(sc, msg, correlationID)
+	carrier := new(propagation.HeaderCarrier)
+	parentCtx := broker.TraceContext.Extract(context.Background(), carrier)
+	return h.svc.HandleReply(parentCtx, msg, correlationID)
 }
 
 // OrchestratorEventRouter implementation

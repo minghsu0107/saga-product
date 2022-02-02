@@ -4,7 +4,10 @@ import (
 	"context"
 
 	infra_broker "github.com/minghsu0107/saga-product/infra/broker"
+	infra_cache "github.com/minghsu0107/saga-product/infra/cache"
 	infra_grpc "github.com/minghsu0107/saga-product/infra/grpc"
+	grpc_auth "github.com/minghsu0107/saga-product/infra/grpc/auth"
+	grpc_order "github.com/minghsu0107/saga-product/infra/grpc/order"
 	infra_http "github.com/minghsu0107/saga-product/infra/http"
 	infra_observe "github.com/minghsu0107/saga-product/infra/observe"
 	log "github.com/sirupsen/logrus"
@@ -50,7 +53,7 @@ func NewProductServer(httpServer infra_http.Server, grpcServer infra_grpc.Server
 
 // Run server
 func (s *ProductServer) Run() error {
-	errs := make(chan error, 1)
+	errs := make(chan error, 3)
 	s.ObsInjector.Register(errs)
 	go func() {
 		errs <- s.HTTPServer.Run()
@@ -70,20 +73,32 @@ func (s *ProductServer) Run() error {
 
 // GracefulStop server
 func (s *ProductServer) GracefulStop(ctx context.Context, done chan bool) {
-	errs := make(chan error, 1)
-	go func() {
-		errs <- s.HTTPServer.GracefulStop(ctx)
-	}()
-	go func() {
-		s.GRPCServer.GracefulStop()
-	}()
-	go func() {
-		errs <- s.EventRouter.GracefulStop()
-	}()
-	err := <-errs
+	err := s.HTTPServer.GracefulStop(ctx)
 	if err != nil {
 		log.Error(err)
 	}
+	s.GRPCServer.GracefulStop()
+	err = s.EventRouter.GracefulStop()
+	if err != nil {
+		log.Error(err)
+	}
+
+	if infra_observe.TracerProvider != nil {
+		err = infra_observe.TracerProvider.Shutdown(ctx)
+		if err != nil {
+			log.Error(err)
+		}
+	}
+	if err = infra_cache.RedisClient.Close(); err != nil {
+		log.Error(err)
+	}
+	if err = infra_broker.TxPublisher.Close(); err != nil {
+		log.Error(err)
+	}
+	if err = infra_broker.TxSubscriber.Close(); err != nil {
+		log.Error(err)
+	}
+
 	log.Info("gracefully shutdowned")
 	done <- true
 }
@@ -99,7 +114,7 @@ func NewOrderServer(httpServer infra_http.Server, eventRouter infra_broker.Event
 
 // Run server
 func (s *OrderServer) Run() error {
-	errs := make(chan error, 1)
+	errs := make(chan error, 2)
 	s.ObsInjector.Register(errs)
 	go func() {
 		errs <- s.HTTPServer.Run()
@@ -116,17 +131,37 @@ func (s *OrderServer) Run() error {
 
 // GracefulStop server
 func (s *OrderServer) GracefulStop(ctx context.Context, done chan bool) {
-	errs := make(chan error, 1)
-	go func() {
-		errs <- s.HTTPServer.GracefulStop(ctx)
-	}()
-	go func() {
-		errs <- s.EventRouter.GracefulStop()
-	}()
-	err := <-errs
+	err := s.HTTPServer.GracefulStop(ctx)
 	if err != nil {
 		log.Error(err)
 	}
+	err = s.EventRouter.GracefulStop()
+	if err != nil {
+		log.Error(err)
+	}
+
+	if infra_observe.TracerProvider != nil {
+		err = infra_observe.TracerProvider.Shutdown(ctx)
+		if err != nil {
+			log.Error(err)
+		}
+	}
+	if err = infra_cache.RedisClient.Close(); err != nil {
+		log.Error(err)
+	}
+	if err = infra_broker.TxPublisher.Close(); err != nil {
+		log.Error(err)
+	}
+	if err = infra_broker.TxSubscriber.Close(); err != nil {
+		log.Error(err)
+	}
+	if err = grpc_auth.AuthClientConn.Conn.Close(); err != nil {
+		log.Error(err)
+	}
+	if err = grpc_order.ProductClientConn.Conn.Close(); err != nil {
+		log.Error(err)
+	}
+
 	log.Info("gracefully shutdowned")
 	done <- true
 }
@@ -142,7 +177,7 @@ func NewPaymentServer(httpServer infra_http.Server, eventRouter infra_broker.Eve
 
 // Run server
 func (s *PaymentServer) Run() error {
-	errs := make(chan error, 1)
+	errs := make(chan error, 2)
 	s.ObsInjector.Register(errs)
 	go func() {
 		errs <- s.HTTPServer.Run()
@@ -159,17 +194,34 @@ func (s *PaymentServer) Run() error {
 
 // GracefulStop server
 func (s *PaymentServer) GracefulStop(ctx context.Context, done chan bool) {
-	errs := make(chan error, 1)
-	go func() {
-		errs <- s.HTTPServer.GracefulStop(ctx)
-	}()
-	go func() {
-		errs <- s.EventRouter.GracefulStop()
-	}()
-	err := <-errs
+	err := s.HTTPServer.GracefulStop(ctx)
 	if err != nil {
 		log.Error(err)
 	}
+	err = s.EventRouter.GracefulStop()
+	if err != nil {
+		log.Error(err)
+	}
+
+	if infra_observe.TracerProvider != nil {
+		err = infra_observe.TracerProvider.Shutdown(ctx)
+		if err != nil {
+			log.Error(err)
+		}
+	}
+	if err = infra_cache.RedisClient.Close(); err != nil {
+		log.Error(err)
+	}
+	if err = infra_broker.TxPublisher.Close(); err != nil {
+		log.Error(err)
+	}
+	if err = infra_broker.TxSubscriber.Close(); err != nil {
+		log.Error(err)
+	}
+	if err = grpc_auth.AuthClientConn.Conn.Close(); err != nil {
+		log.Error(err)
+	}
+
 	log.Info("gracefully shutdowned")
 	done <- true
 }
@@ -198,14 +250,27 @@ func (s *OrchestratorServer) Run() error {
 
 // GracefulStop server
 func (s *OrchestratorServer) GracefulStop(ctx context.Context, done chan bool) {
-	errs := make(chan error, 1)
-	go func() {
-		errs <- s.EventRouter.GracefulStop()
-	}()
-	err := <-errs
+	err := s.EventRouter.GracefulStop()
 	if err != nil {
 		log.Error(err)
 	}
+
+	if infra_observe.TracerProvider != nil {
+		err = infra_observe.TracerProvider.Shutdown(ctx)
+		if err != nil {
+			log.Error(err)
+		}
+	}
+	if err = infra_broker.TxPublisher.Close(); err != nil {
+		log.Error(err)
+	}
+	if err = infra_broker.ResultPublisher.Close(); err != nil {
+		log.Error(err)
+	}
+	if err = infra_broker.TxSubscriber.Close(); err != nil {
+		log.Error(err)
+	}
+
 	log.Info("gracefully shutdowned")
 	done <- true
 }

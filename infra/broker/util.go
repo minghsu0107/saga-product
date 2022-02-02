@@ -1,14 +1,21 @@
 package broker
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	pb "github.com/minghsu0107/saga-pb"
 	conf "github.com/minghsu0107/saga-product/config"
 	"github.com/minghsu0107/saga-product/domain/model"
-	"go.opencensus.io/trace"
-	"go.opencensus.io/trace/propagation"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
+)
+
+var (
+	TraceContext        = propagation.TraceContext{}
+	W3CSupportedVersion = 0
 )
 
 func DecodeCreatePurchaseCmd(payload message.Payload) (*model.Purchase, *pb.Purchase, error) {
@@ -44,6 +51,20 @@ func DecodeCreatePurchaseCmd(payload message.Payload) (*model.Purchase, *pb.Purc
 }
 
 // SetSpanContext set span context to the message
-func SetSpanContext(msg *message.Message, span *trace.Span) {
-	msg.Metadata.Set(conf.SpanContextKey, string(propagation.Binary(span.SpanContext())))
+func SetSpanContext(ctx context.Context, msg *message.Message) {
+	msg.Metadata.Set(conf.SpanContextKey, spanContextToW3C(ctx))
+}
+
+func spanContextToW3C(ctx context.Context) string {
+	sc := trace.SpanContextFromContext(ctx)
+	if !sc.IsValid() {
+		return ""
+	}
+	// Clear all flags other than the trace-context supported sampling bit.
+	flags := sc.TraceFlags() & trace.FlagsSampled
+	return fmt.Sprintf("%.2x-%s-%s-%s",
+		W3CSupportedVersion,
+		sc.TraceID(),
+		sc.SpanID(),
+		flags)
 }

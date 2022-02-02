@@ -16,8 +16,7 @@ import (
 	"github.com/minghsu0107/saga-product/infra/broker"
 	"github.com/minghsu0107/saga-product/pkg"
 	log "github.com/sirupsen/logrus"
-	"go.opencensus.io/trace"
-	"go.opencensus.io/trace/propagation"
+	"go.opentelemetry.io/otel"
 )
 
 type MessageType int
@@ -46,8 +45,9 @@ func NewOrchestratorService(config *conf.Config, txPublisher broker.NATSPublishe
 }
 
 // StartTransaction starts the first transaction, which is UpdateProductInventory
-func (svc *OrchestratorServiceImpl) StartTransaction(sc trace.SpanContext, purchase *model.Purchase, correlationID string) error {
-	childCtx, span := trace.StartSpanWithRemoteParent(context.Background(), "event.StartTransaction", sc)
+func (svc *OrchestratorServiceImpl) StartTransaction(parentCtx context.Context, purchase *model.Purchase, correlationID string) error {
+	tr := otel.Tracer("startTransaction")
+	ctx, span := tr.Start(parentCtx, "event.StartTransaction")
 	defer span.End()
 
 	cmd := encodeDomainPurchase(purchase)
@@ -57,19 +57,20 @@ func (svc *OrchestratorServiceImpl) StartTransaction(sc trace.SpanContext, purch
 	}
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	middleware.SetCorrelationID(correlationID, msg)
-	svc.publishPurchaseResult(childCtx, &event.PurchaseResult{
+	svc.publishPurchaseResult(ctx, &event.PurchaseResult{
 		CustomerID: purchase.Order.CustomerID,
 		PurchaseID: purchase.ID,
 		Step:       event.StepUpdateProductInventory,
 		Status:     event.StatusExecute,
 	}, correlationID)
 	svc.logger.Infof("update product inventory %v", purchase.ID)
-	return svc.publishMessage(childCtx, conf.UpdateProductInventoryTopic, msg, TX_MSG)
+	return svc.publishMessage(ctx, conf.UpdateProductInventoryTopic, msg, TX_MSG)
 }
 
 // HandleReply handles reply events
-func (svc *OrchestratorServiceImpl) HandleReply(sc trace.SpanContext, msg *message.Message, correlationID string) error {
-	childCtx, span := trace.StartSpanWithRemoteParent(context.Background(), "event.HandleReply", sc)
+func (svc *OrchestratorServiceImpl) HandleReply(parentCtx context.Context, msg *message.Message, correlationID string) error {
+	tr := otel.Tracer("handleReply")
+	ctx, span := tr.Start(parentCtx, "event.HandleReply")
 	defer span.End()
 
 	handler := msg.Metadata.Get(conf.HandlerHeader)
@@ -80,39 +81,39 @@ func (svc *OrchestratorServiceImpl) HandleReply(sc trace.SpanContext, msg *messa
 			return err
 		}
 		if resp.Success {
-			return svc.createOrder(childCtx, resp.Purchase, correlationID)
+			return svc.createOrder(ctx, resp.Purchase, correlationID)
 		}
 		svc.logger.Error(resp.Error)
-		return svc.rollbackProductInventory(childCtx, resp.Purchase.Order.CustomerID, resp.Purchase.ID, correlationID)
+		return svc.rollbackProductInventory(ctx, resp.Purchase.Order.CustomerID, resp.Purchase.ID, correlationID)
 	case conf.RollbackProductInventoryHandler:
 		resp, err := decodeRollbackResponse(msg.Payload)
 		if err != nil {
 			return err
 		}
-		svc.publishRollbackResult(childCtx, event.StepUpdateProductInventory, resp, correlationID)
+		svc.publishRollbackResult(ctx, event.StepUpdateProductInventory, resp, correlationID)
 	case conf.CreateOrderHandler:
 		resp, err := decodeCreatePurchaseResponse(msg.Payload)
 		if err != nil {
 			return err
 		}
 		if resp.Success {
-			return svc.createPayment(childCtx, resp.Purchase, correlationID)
+			return svc.createPayment(ctx, resp.Purchase, correlationID)
 		}
 		svc.logger.Error(resp.Error)
-		return svc.rollbackFromOrder(childCtx, resp.Purchase.Order.CustomerID, resp.Purchase.ID, correlationID)
+		return svc.rollbackFromOrder(ctx, resp.Purchase.Order.CustomerID, resp.Purchase.ID, correlationID)
 	case conf.RollbackOrderHandler:
 		resp, err := decodeRollbackResponse(msg.Payload)
 		if err != nil {
 			return err
 		}
-		svc.publishRollbackResult(childCtx, event.StepCreateOrder, resp, correlationID)
+		svc.publishRollbackResult(ctx, event.StepCreateOrder, resp, correlationID)
 	case conf.CreatePaymentHandler:
 		resp, err := decodeCreatePurchaseResponse(msg.Payload)
 		if err != nil {
 			return err
 		}
 		if resp.Success {
-			svc.publishPurchaseResult(childCtx, &event.PurchaseResult{
+			svc.publishPurchaseResult(ctx, &event.PurchaseResult{
 				CustomerID: resp.Purchase.Order.CustomerID,
 				PurchaseID: resp.Purchase.ID,
 				Step:       event.StepCreatePayment,
@@ -122,13 +123,13 @@ func (svc *OrchestratorServiceImpl) HandleReply(sc trace.SpanContext, msg *messa
 			return nil
 		}
 		svc.logger.Error(resp.Error)
-		return svc.rollbackFromPayment(childCtx, resp.Purchase.Order.CustomerID, resp.Purchase.ID, correlationID)
+		return svc.rollbackFromPayment(ctx, resp.Purchase.Order.CustomerID, resp.Purchase.ID, correlationID)
 	case conf.RollbackPaymentHandler:
 		resp, err := decodeRollbackResponse(msg.Payload)
 		if err != nil {
 			return err
 		}
-		svc.publishRollbackResult(childCtx, event.StepCreatePayment, resp, correlationID)
+		svc.publishRollbackResult(ctx, event.StepCreatePayment, resp, correlationID)
 	default:
 		return fmt.Errorf("unkown handler: %s", handler)
 	}
@@ -335,8 +336,7 @@ func (svc *OrchestratorServiceImpl) publishPurchaseResult(ctx context.Context, p
 }
 
 func (svc *OrchestratorServiceImpl) publishMessage(ctx context.Context, topic string, msg *message.Message, messageType MessageType) error {
-	span := trace.FromContext(ctx)
-	msg.Metadata.Set(conf.SpanContextKey, string(propagation.Binary(span.SpanContext())))
+	broker.SetSpanContext(ctx, msg)
 	switch messageType {
 	case TX_MSG:
 		return svc.txPublisher.Publish(topic, msg)

@@ -3,7 +3,7 @@ ginMode: "debug"
 httpPort: 80
 grpcPort: 8000
 promPort: 8080
-ocAgentHost: ""
+jaegerUrl: ""
 dbConfig:
   dsn: root:password@tcp(127.0.0.1:3306)/PLACEHOLDER?charset=utf8mb4&parseTime=True&loc=Local
   maxIdleConns: 3
