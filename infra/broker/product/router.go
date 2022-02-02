@@ -24,7 +24,7 @@ type SagaProductHandler struct {
 
 // UpdateProductInventory handler
 func (h *SagaProductHandler) UpdateProductInventory(msg *message.Message) ([]*message.Message, error) {
-	carrier := new(propagation.HeaderCarrier)
+	carrier := make(propagation.HeaderCarrier)
 	carrier.Set(broker.TraceparentHeader, msg.Metadata.Get(conf.SpanContextKey))
 	parentCtx := broker.TraceContext.Extract(context.Background(), carrier)
 	tr := otel.Tracer("updateProductInventory")
@@ -63,7 +63,7 @@ func (h *SagaProductHandler) UpdateProductInventory(msg *message.Message) ([]*me
 
 // RollbackProductInventory handler
 func (h *SagaProductHandler) RollbackProductInventory(msg *message.Message) ([]*message.Message, error) {
-	carrier := new(propagation.HeaderCarrier)
+	carrier := make(propagation.HeaderCarrier)
 	carrier.Set(broker.TraceparentHeader, msg.Metadata.Get(conf.SpanContextKey))
 	parentCtx := broker.TraceContext.Extract(context.Background(), carrier)
 	tr := otel.Tracer("rollbackProductInventory")

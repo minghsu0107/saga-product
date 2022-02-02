@@ -23,7 +23,7 @@ type SagaOrderHandler struct {
 
 // CreateOrder handler
 func (h *SagaOrderHandler) CreateOrder(msg *message.Message) ([]*message.Message, error) {
-	carrier := new(propagation.HeaderCarrier)
+	carrier := make(propagation.HeaderCarrier)
 	carrier.Set(broker.TraceparentHeader, msg.Metadata.Get(conf.SpanContextKey))
 	parentCtx := broker.TraceContext.Extract(context.Background(), carrier)
 	tr := otel.Tracer("createOrder")
@@ -61,7 +61,7 @@ func (h *SagaOrderHandler) CreateOrder(msg *message.Message) ([]*message.Message
 }
 
 func (h *SagaOrderHandler) RollbackOrder(msg *message.Message) ([]*message.Message, error) {
-	carrier := new(propagation.HeaderCarrier)
+	carrier := make(propagation.HeaderCarrier)
 	carrier.Set(broker.TraceparentHeader, msg.Metadata.Get(conf.SpanContextKey))
 	parentCtx := broker.TraceContext.Extract(context.Background(), carrier)
 	tr := otel.Tracer("rollbackOrder")
