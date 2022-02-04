@@ -12,8 +12,6 @@ import (
 )
 
 func RunProductServer(app string) {
-	errs := make(chan error, 1)
-
 	migrator, err := dep.InitializeMigrator(app)
 	if err != nil {
 		log.Fatal(err)
@@ -28,7 +26,10 @@ func RunProductServer(app string) {
 	}
 
 	go func() {
-		errs <- server.Run()
+		err := server.Run()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}()
 
 	// catch shutdown
@@ -43,11 +44,6 @@ func RunProductServer(app string) {
 		defer cancel()
 		server.GracefulStop(ctx, done)
 	}()
-
-	err = <-errs
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	// wait for graceful shutdown
 	<-done

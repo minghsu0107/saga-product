@@ -53,25 +53,27 @@ func NewProductServer(httpServer infra_http.Server, grpcServer infra_grpc.Server
 
 // Run server
 func (s *ProductServer) Run() error {
-	errs := make(chan error, 3)
-	s.ObsInjector.Register(errs)
-	err := <-errs
-	if err != nil {
+	if err := s.ObsInjector.Register(); err != nil {
 		return err
 	}
 	go func() {
-		errs <- s.HTTPServer.Run()
+		err := s.HTTPServer.Run()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}()
 	go func() {
-		errs <- s.GRPCServer.Run()
+		err := s.GRPCServer.Run()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}()
 	go func() {
-		errs <- s.EventRouter.Run()
+		err := s.EventRouter.Run()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}()
-	err = <-errs
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -118,22 +120,21 @@ func NewOrderServer(httpServer infra_http.Server, eventRouter infra_broker.Event
 
 // Run server
 func (s *OrderServer) Run() error {
-	errs := make(chan error, 2)
-	s.ObsInjector.Register(errs)
-	err := <-errs
-	if err != nil {
+	if err := s.ObsInjector.Register(); err != nil {
 		return err
 	}
 	go func() {
-		errs <- s.HTTPServer.Run()
+		err := s.HTTPServer.Run()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}()
 	go func() {
-		errs <- s.EventRouter.Run()
+		err := s.EventRouter.Run()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}()
-	err = <-errs
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -185,22 +186,21 @@ func NewPaymentServer(httpServer infra_http.Server, eventRouter infra_broker.Eve
 
 // Run server
 func (s *PaymentServer) Run() error {
-	errs := make(chan error, 2)
-	s.ObsInjector.Register(errs)
-	err := <-errs
-	if err != nil {
+	if err := s.ObsInjector.Register(); err != nil {
 		return err
 	}
 	go func() {
-		errs <- s.HTTPServer.Run()
+		err := s.HTTPServer.Run()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}()
 	go func() {
-		errs <- s.EventRouter.Run()
+		err := s.EventRouter.Run()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}()
-	err = <-errs
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -248,19 +248,15 @@ func NewOrchestratorServer(eventRouter infra_broker.EventRouter, obsInjector *in
 
 // Run server
 func (s *OrchestratorServer) Run() error {
-	errs := make(chan error, 2)
-	s.ObsInjector.Register(errs)
-	err := <-errs
-	if err != nil {
+	if err := s.ObsInjector.Register(); err != nil {
 		return err
 	}
 	go func() {
-		errs <- s.EventRouter.Run()
+		err := s.EventRouter.Run()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}()
-	err = <-errs
-	if err != nil {
-		return err
-	}
 	return nil
 }
 

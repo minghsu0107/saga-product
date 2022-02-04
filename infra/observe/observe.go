@@ -40,11 +40,11 @@ func NewObservibilityInjector(config *conf.Config) (*ObservibilityInjector, erro
 	}, nil
 }
 
-func (injector *ObservibilityInjector) Register(errs chan error) {
+func (injector *ObservibilityInjector) Register() error {
 	if injector.jaegerUrl != "" {
 		err := initTracerProvider(injector.jaegerUrl, injector.app)
 		if err != nil {
-			errs <- err
+			return err
 		}
 		otel.SetTracerProvider(TracerProvider)
 		otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propjaeger.Jaeger{}, propagation.Baggage{}))
@@ -52,9 +52,13 @@ func (injector *ObservibilityInjector) Register(errs chan error) {
 	if injector.promPort != "" {
 		go func() {
 			log.Infof("starting prom metrics on PROM_PORT=[%s]", injector.promPort)
-			errs <- http.ListenAndServe(fmt.Sprintf(":%s", injector.promPort), promhttp.Handler())
+			err := http.ListenAndServe(fmt.Sprintf(":%s", injector.promPort), promhttp.Handler())
+			if err != nil {
+				log.Fatal(err)
+			}
 		}()
 	}
+	return nil
 }
 
 func initTracerProvider(jaegerUrl, serviceName string) error {

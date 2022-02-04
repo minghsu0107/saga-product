@@ -17,9 +17,11 @@ func RunOrchestratorServer(app string) {
 		log.Fatal(err)
 	}
 
-	errs := make(chan error, 1)
 	go func() {
-		errs <- server.Run()
+		err := server.Run()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}()
 
 	// catch shutdown
@@ -34,11 +36,6 @@ func RunOrchestratorServer(app string) {
 		defer cancel()
 		server.GracefulStop(ctx, done)
 	}()
-
-	err = <-errs
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	// wait for graceful shutdown
 	<-done
