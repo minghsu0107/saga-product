@@ -55,6 +55,10 @@ func NewProductServer(httpServer infra_http.Server, grpcServer infra_grpc.Server
 func (s *ProductServer) Run() error {
 	errs := make(chan error, 3)
 	s.ObsInjector.Register(errs)
+	err := <-errs
+	if err != nil {
+		return err
+	}
 	go func() {
 		errs <- s.HTTPServer.Run()
 	}()
@@ -64,7 +68,7 @@ func (s *ProductServer) Run() error {
 	go func() {
 		errs <- s.EventRouter.Run()
 	}()
-	err := <-errs
+	err = <-errs
 	if err != nil {
 		return err
 	}
@@ -116,13 +120,17 @@ func NewOrderServer(httpServer infra_http.Server, eventRouter infra_broker.Event
 func (s *OrderServer) Run() error {
 	errs := make(chan error, 2)
 	s.ObsInjector.Register(errs)
+	err := <-errs
+	if err != nil {
+		return err
+	}
 	go func() {
 		errs <- s.HTTPServer.Run()
 	}()
 	go func() {
 		errs <- s.EventRouter.Run()
 	}()
-	err := <-errs
+	err = <-errs
 	if err != nil {
 		return err
 	}
@@ -179,13 +187,17 @@ func NewPaymentServer(httpServer infra_http.Server, eventRouter infra_broker.Eve
 func (s *PaymentServer) Run() error {
 	errs := make(chan error, 2)
 	s.ObsInjector.Register(errs)
+	err := <-errs
+	if err != nil {
+		return err
+	}
 	go func() {
 		errs <- s.HTTPServer.Run()
 	}()
 	go func() {
 		errs <- s.EventRouter.Run()
 	}()
-	err := <-errs
+	err = <-errs
 	if err != nil {
 		return err
 	}
@@ -236,12 +248,16 @@ func NewOrchestratorServer(eventRouter infra_broker.EventRouter, obsInjector *in
 
 // Run server
 func (s *OrchestratorServer) Run() error {
-	errs := make(chan error, 1)
+	errs := make(chan error, 2)
 	s.ObsInjector.Register(errs)
+	err := <-errs
+	if err != nil {
+		return err
+	}
 	go func() {
 		errs <- s.EventRouter.Run()
 	}()
-	err := <-errs
+	err = <-errs
 	if err != nil {
 		return err
 	}
