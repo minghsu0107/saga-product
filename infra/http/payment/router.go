@@ -27,7 +27,7 @@ func NewRouter(paymentSvc paymentsvc.PaymentService) *Router {
 func (r *Router) GetPayment(c *gin.Context) {
 	customerID, ok := c.Request.Context().Value(config.CustomerKey).(uint64)
 	if !ok {
-		response(c, http.StatusUnauthorized, common_presenter.ErrUnautorized)
+		response(c, http.StatusUnauthorized, common_presenter.ErrUnauthorized)
 		return
 	}
 
@@ -44,7 +44,7 @@ func (r *Router) GetPayment(c *gin.Context) {
 		response(c, http.StatusNotFound, paymentsvc.ErrPaymentNotFound)
 		return
 	case paymentsvc.ErrUnauthorized:
-		response(c, http.StatusUnauthorized, common_presenter.ErrUnautorized)
+		response(c, http.StatusUnauthorized, common_presenter.ErrUnauthorized)
 		return
 	case nil:
 		c.JSON(http.StatusOK, &presenter.Payment{

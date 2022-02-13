@@ -27,8 +27,6 @@ type RedisCache interface {
 	Get(ctx context.Context, key string, dst interface{}) (bool, error)
 	Exist(ctx context.Context, key string) (bool, error)
 	Set(ctx context.Context, key string, val interface{}) error
-	HMGet(ctx context.Context, key string, dst interface{}, fields ...string) error
-	HSet(ctx context.Context, key string, values map[string]interface{}) error
 	BFReserve(ctx context.Context, key string, errorRate float64, capacity int64) error
 	BFInsert(ctx context.Context, key string, errorRate float64, capacity int64, items ...interface{}) error
 	BFAdd(ctx context.Context, key string, item interface{}) error
@@ -173,14 +171,6 @@ func (rc *RedisCacheImpl) Set(ctx context.Context, key string, val interface{}) 
 		return err
 	}
 	return nil
-}
-
-func (rc *RedisCacheImpl) HMGet(ctx context.Context, key string, dst interface{}, fields ...string) error {
-	return rc.client.HMGet(ctx, key, fields...).Scan(dst)
-}
-
-func (rc *RedisCacheImpl) HSet(ctx context.Context, key string, values map[string]interface{}) error {
-	return rc.client.HSet(ctx, key, values).Err()
 }
 
 func (rc *RedisCacheImpl) BFReserve(ctx context.Context, key string, errorRate float64, capacity int64) error {

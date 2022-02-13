@@ -27,7 +27,7 @@ func NewRouter(orderSvc ordersvc.OrderService) *Router {
 func (r *Router) GetDetailedOrder(c *gin.Context) {
 	customerID, ok := c.Request.Context().Value(config.CustomerKey).(uint64)
 	if !ok {
-		response(c, http.StatusUnauthorized, common_presenter.ErrUnautorized)
+		response(c, http.StatusUnauthorized, common_presenter.ErrUnauthorized)
 		return
 	}
 
@@ -44,7 +44,7 @@ func (r *Router) GetDetailedOrder(c *gin.Context) {
 		response(c, http.StatusNotFound, ordersvc.ErrOrderNotFound)
 		return
 	case ordersvc.ErrUnauthorized:
-		response(c, http.StatusUnauthorized, common_presenter.ErrUnautorized)
+		response(c, http.StatusUnauthorized, common_presenter.ErrUnauthorized)
 		return
 	case nil:
 		var purchasedItems []presenter.PurchasedItem

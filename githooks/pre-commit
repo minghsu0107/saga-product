@@ -2,3 +2,4 @@
 make pretest
 go mod tidy
 git add go.mod go.sum
+go fmt ./...

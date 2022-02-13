@@ -9,9 +9,9 @@ all: test build
 
 test: runtest
 build: dep
-	$(GOBUILD) -o server -v ./main.go
+	$(GOBUILD) -o server -v ./cmd/main.go
 build-linux: dep
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o server -v ./main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -ldflags="-w -s" -o server -v ./cmd/main.go
 
 runtest:
 	$(GOTEST) -gcflags=-l -v -cover -coverpkg=./... -coverprofile=cover.out ./...
