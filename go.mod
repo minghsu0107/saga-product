@@ -9,6 +9,7 @@ require (
 	github.com/allegro/bigcache/v3 v3.0.0
 	github.com/gin-gonic/gin v1.7.1
 	github.com/go-kit/kit v0.10.0
+	github.com/go-redis/redis/extra/redisotel/v8 v8.11.4
 	github.com/go-redis/redis/v8 v8.11.4
 	github.com/go-redsync/redsync/v4 v4.3.0
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
