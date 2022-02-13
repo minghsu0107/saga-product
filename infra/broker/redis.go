@@ -8,6 +8,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/components/metrics"
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/go-redis/redis/extra/redisotel/v8"
 	"github.com/go-redis/redis/v8"
 	conf "github.com/minghsu0107/saga-product/config"
 	redistream "github.com/minghsu0107/watermill-redistream/pkg/redis"
@@ -38,6 +39,7 @@ func NewRedisPublisher(config *conf.Config) (RedisPublisher, error) {
 	if err == redis.Nil || err != nil {
 		return nil, err
 	}
+	RedisClient.AddHook(redisotel.TracingHook{})
 	config.Logger.ContextLogger.WithField("type", "setup:redis").Info("successful redis connection: " + pong)
 
 	publisherConfig := redistream.PublisherConfig{
