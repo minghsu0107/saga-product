@@ -1,5 +1,5 @@
 # Saga Product
-Transaction services of the [saga pattern implementation](https://github.com/minghsu0107/saga-example), including product, order, payment and orchestrator.
+Transaction services of my [saga pattern implementation](https://github.com/minghsu0107/saga-example), including product, order, payment and orchestrator.
 
 Features:
 - Entirely event-driven
