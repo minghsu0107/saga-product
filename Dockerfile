@@ -10,10 +10,10 @@ COPY . .
 RUN make build-linux
 
 FROM alpine:3.14
+RUN apk update && apk add --no-cache ca-certificates
 
 RUN mkdir -p /app
 WORKDIR /app
 COPY --from=builder /app/server /app/config.yml ./
-RUN apk add --no-cache bash
 
 ENTRYPOINT ["./server"]
