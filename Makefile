@@ -3,9 +3,9 @@ GOCMD=go
 GOTEST=$(GOCMD) test
 GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
-GOGET=$(GOCMD) get
+GOINSTALL=$(GOCMD) install
 
-all: test build
+all: build test
 
 test: runtest
 build: dep
@@ -19,7 +19,7 @@ dep: wire
 	$(shell $(GOCMD) env GOPATH)/bin/wire ./dep
 
 wire:
-	GO111MODULE=on $(GOGET) -u github.com/google/wire/cmd/wire@v0.4.0
+	GO111MODULE=on $(GOINSTALL) github.com/google/wire/cmd/wire@v0.4.0
 
 clean:
 	$(GOCLEAN)
