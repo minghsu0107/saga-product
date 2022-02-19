@@ -123,7 +123,7 @@ func NewRedisClient(config *config.Config) (redis.UniversalClient, error) {
 	if err == redis.Nil || err != nil {
 		return nil, err
 	}
-	RedisClient.AddHook(redisotel.TracingHook{})
+	RedisClient.AddHook(redisotel.NewTracingHook())
 	config.Logger.ContextLogger.WithField("type", "setup:redis").Info("successful redis connection: " + pong)
 	return RedisClient, nil
 }
