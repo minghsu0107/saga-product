@@ -18,31 +18,31 @@ type ProductServer struct {
 	HTTPServer  infra_http.Server
 	GRPCServer  infra_grpc.Server
 	EventRouter infra_broker.EventRouter
-	ObsInjector *infra_observe.ObservibilityInjector
+	ObsInjector *infra_observe.ObservabilityInjector
 }
 
 // OrderServer wrapper
 type OrderServer struct {
 	HTTPServer  infra_http.Server
 	EventRouter infra_broker.EventRouter
-	ObsInjector *infra_observe.ObservibilityInjector
+	ObsInjector *infra_observe.ObservabilityInjector
 }
 
 // PaymentServer wrapper
 type PaymentServer struct {
 	HTTPServer  infra_http.Server
 	EventRouter infra_broker.EventRouter
-	ObsInjector *infra_observe.ObservibilityInjector
+	ObsInjector *infra_observe.ObservabilityInjector
 }
 
 // OrchestratorServer wrapper
 type OrchestratorServer struct {
 	EventRouter infra_broker.EventRouter
-	ObsInjector *infra_observe.ObservibilityInjector
+	ObsInjector *infra_observe.ObservabilityInjector
 }
 
 // NewProductServer factory
-func NewProductServer(httpServer infra_http.Server, grpcServer infra_grpc.Server, eventRouter infra_broker.EventRouter, obsInjector *infra_observe.ObservibilityInjector) *ProductServer {
+func NewProductServer(httpServer infra_http.Server, grpcServer infra_grpc.Server, eventRouter infra_broker.EventRouter, obsInjector *infra_observe.ObservabilityInjector) *ProductServer {
 	return &ProductServer{
 		HTTPServer:  httpServer,
 		GRPCServer:  grpcServer,
@@ -110,7 +110,7 @@ func (s *ProductServer) GracefulStop(ctx context.Context, done chan bool) {
 }
 
 // NewOrderServer factory
-func NewOrderServer(httpServer infra_http.Server, eventRouter infra_broker.EventRouter, obsInjector *infra_observe.ObservibilityInjector) *OrderServer {
+func NewOrderServer(httpServer infra_http.Server, eventRouter infra_broker.EventRouter, obsInjector *infra_observe.ObservabilityInjector) *OrderServer {
 	return &OrderServer{
 		HTTPServer:  httpServer,
 		EventRouter: eventRouter,
@@ -176,7 +176,7 @@ func (s *OrderServer) GracefulStop(ctx context.Context, done chan bool) {
 }
 
 // NewPaymentServer factory
-func NewPaymentServer(httpServer infra_http.Server, eventRouter infra_broker.EventRouter, obsInjector *infra_observe.ObservibilityInjector) *PaymentServer {
+func NewPaymentServer(httpServer infra_http.Server, eventRouter infra_broker.EventRouter, obsInjector *infra_observe.ObservabilityInjector) *PaymentServer {
 	return &PaymentServer{
 		HTTPServer:  httpServer,
 		EventRouter: eventRouter,
@@ -239,7 +239,7 @@ func (s *PaymentServer) GracefulStop(ctx context.Context, done chan bool) {
 }
 
 // NewOrchestratorServer factory
-func NewOrchestratorServer(eventRouter infra_broker.EventRouter, obsInjector *infra_observe.ObservibilityInjector) *OrchestratorServer {
+func NewOrchestratorServer(eventRouter infra_broker.EventRouter, obsInjector *infra_observe.ObservabilityInjector) *OrchestratorServer {
 	return &OrchestratorServer{
 		EventRouter: eventRouter,
 		ObsInjector: obsInjector,

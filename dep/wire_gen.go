@@ -80,11 +80,11 @@ func InitializeProductServer() (*infra.ProductServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	observibilityInjector, err := pkg2.NewObservibilityInjector(configConfig)
+	observabilityInjector, err := pkg2.NewObservabilityInjector(configConfig)
 	if err != nil {
 		return nil, err
 	}
-	productServer := infra.NewProductServer(server, grpcServer, eventRouter, observibilityInjector)
+	productServer := infra.NewProductServer(server, grpcServer, eventRouter, observabilityInjector)
 	return productServer, nil
 }
 
@@ -134,11 +134,11 @@ func InitializeOrderServer() (*infra.OrderServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	observibilityInjector, err := pkg2.NewObservibilityInjector(configConfig)
+	observabilityInjector, err := pkg2.NewObservabilityInjector(configConfig)
 	if err != nil {
 		return nil, err
 	}
-	orderServer := infra.NewOrderServer(server, eventRouter, observibilityInjector)
+	orderServer := infra.NewOrderServer(server, eventRouter, observabilityInjector)
 	return orderServer, nil
 }
 
@@ -184,11 +184,11 @@ func InitializePaymentServer() (*infra.PaymentServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	observibilityInjector, err := pkg2.NewObservibilityInjector(configConfig)
+	observabilityInjector, err := pkg2.NewObservabilityInjector(configConfig)
 	if err != nil {
 		return nil, err
 	}
-	paymentServer := infra.NewPaymentServer(server, eventRouter, observibilityInjector)
+	paymentServer := infra.NewPaymentServer(server, eventRouter, observabilityInjector)
 	return paymentServer, nil
 }
 
@@ -217,11 +217,11 @@ func InitializeOrchestratorServer() (*infra.OrchestratorServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	observibilityInjector, err := pkg2.NewObservibilityInjector(configConfig)
+	observabilityInjector, err := pkg2.NewObservabilityInjector(configConfig)
 	if err != nil {
 		return nil, err
 	}
-	orchestratorServer := infra.NewOrchestratorServer(eventRouter, observibilityInjector)
+	orchestratorServer := infra.NewOrchestratorServer(eventRouter, observabilityInjector)
 	return orchestratorServer, nil
 }
 

@@ -45,7 +45,7 @@ func InitializeProductServer() (*infra.ProductServer, error) {
 
 		infra_broker_product.NewProductEventRouter,
 
-		infra_observe.NewObservibilityInjector,
+		infra_observe.NewObservabilityInjector,
 
 		db.NewDatabaseConnection,
 
@@ -84,7 +84,7 @@ func InitializeOrderServer() (*infra.OrderServer, error) {
 
 		infra_broker_order.NewOrderEventRouter,
 
-		infra_observe.NewObservibilityInjector,
+		infra_observe.NewObservabilityInjector,
 
 		db.NewDatabaseConnection,
 
@@ -120,7 +120,7 @@ func InitializePaymentServer() (*infra.PaymentServer, error) {
 
 		infra_broker_payment.NewPaymentEventRouter,
 
-		infra_observe.NewObservibilityInjector,
+		infra_observe.NewObservabilityInjector,
 
 		db.NewDatabaseConnection,
 
@@ -149,7 +149,7 @@ func InitializeOrchestratorServer() (*infra.OrchestratorServer, error) {
 
 		infra_broker_orchestrator.NewOrchestratorEventRouter,
 
-		infra_observe.NewObservibilityInjector,
+		infra_observe.NewObservabilityInjector,
 
 		broker.NewNATSPublisher,
 		broker.NewNATSSubscriber,

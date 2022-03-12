@@ -18,13 +18,13 @@ import (
 
 var TracerProvider *tracesdk.TracerProvider
 
-type ObservibilityInjector struct {
+type ObservabilityInjector struct {
 	promPort  string
 	jaegerUrl string
 	app       string
 }
 
-func NewObservibilityInjector(config *conf.Config) (*ObservibilityInjector, error) {
+func NewObservabilityInjector(config *conf.Config) (*ObservabilityInjector, error) {
 	promPort := config.PromPort
 	jaegerUrl := config.JaegerUrl
 	app := config.App
@@ -33,14 +33,14 @@ func NewObservibilityInjector(config *conf.Config) (*ObservibilityInjector, erro
 		return nil, fmt.Errorf("app name should not be empty")
 	}
 
-	return &ObservibilityInjector{
+	return &ObservabilityInjector{
 		promPort:  promPort,
 		jaegerUrl: jaegerUrl,
 		app:       app,
 	}, nil
 }
 
-func (injector *ObservibilityInjector) Register() error {
+func (injector *ObservabilityInjector) Register() error {
 	if injector.jaegerUrl != "" {
 		err := initTracerProvider(injector.jaegerUrl, injector.app)
 		if err != nil {
