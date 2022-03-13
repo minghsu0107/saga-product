@@ -58,8 +58,8 @@ const (
 	SET RedisOpType = iota
 	// DELETE represents delete operation
 	DELETE
-	// INCRBY represents incrBy operation
-	INCRBY
+	// INCRBYX represents incrBy if exists operation
+	INCRBYX
 )
 
 // RedisPayload is a abstract interface for payload type
@@ -80,8 +80,8 @@ type RedisDeletePayload struct {
 	Key string
 }
 
-// RedisIncrByPayload is the payload type of incrBy method
-type RedisIncrByPayload struct {
+// RedisIncrByXPayload is the payload type of incrByX method
+type RedisIncrByXPayload struct {
 	RedisPayload
 	Key string
 	Val int64
@@ -94,7 +94,7 @@ func (RedisSetPayload) Payload() {}
 func (RedisDeletePayload) Payload() {}
 
 // Payload implements abstract interface
-func (RedisIncrByPayload) Payload() {}
+func (RedisIncrByXPayload) Payload() {}
 
 // RedisCmd represents an operation and its payload
 type RedisCmd struct {
@@ -251,6 +251,13 @@ func (rc *RedisCacheImpl) GetMutex(mutexname string) *redsync.Mutex {
 	return rc.rs.NewMutex(mutexname, redsync.WithExpiry(5*time.Second))
 }
 
+var incrByX = redis.NewScript(`
+local exists = redis.call('EXISTS', KEYS[1])
+if exists == 1 then
+	return redis.call('INCRBY', KEYS[1], ARGV[1])
+end
+`)
+
 // ExecPipeLine execute the given commands in a pipline
 func (rc *RedisCacheImpl) ExecPipeLine(ctx context.Context, cmds *[]RedisCmd) error {
 	pipe := rc.client.Pipeline()
@@ -271,11 +278,11 @@ func (rc *RedisCacheImpl) ExecPipeLine(ctx context.Context, cmds *[]RedisCmd) er
 				OpType: DELETE,
 				Cmd:    pipe.Del(ctx, cmd.Payload.(RedisDeletePayload).Key),
 			})
-		case INCRBY:
-			payload := cmd.Payload.(RedisIncrByPayload)
+		case INCRBYX:
+			payload := cmd.Payload.(RedisIncrByXPayload)
 			pipelineCmds = append(pipelineCmds, RedisPipelineCmd{
-				OpType: INCRBY,
-				Cmd:    pipe.IncrBy(ctx, payload.Key, payload.Val),
+				OpType: INCRBYX,
+				Cmd:    incrByX.Run(ctx, pipe, []string{payload.Key}, payload.Val),
 			})
 		default:
 			return ErrRedisCmdNotFound
@@ -292,8 +299,12 @@ func (rc *RedisCacheImpl) ExecPipeLine(ctx context.Context, cmds *[]RedisCmd) er
 			if err := executedCmd.Cmd.(*redis.StatusCmd).Err(); err != nil {
 				return err
 			}
-		case DELETE, INCRBY:
+		case DELETE:
 			if err := executedCmd.Cmd.(*redis.IntCmd).Err(); err != nil {
+				return err
+			}
+		case INCRBYX:
+			if err := executedCmd.Cmd.(*redis.Cmd).Err(); err != nil {
 				return err
 			}
 		}

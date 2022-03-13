@@ -269,16 +269,13 @@ func (c *ProductRepoCacheImpl) UpdateProductInventory(ctx context.Context, idemp
 	var cmds []cache.RedisCmd
 	for _, purchasedItem := range *purchasedItems {
 		key := pkg.Join("productinventory:", strconv.FormatUint(purchasedItem.ProductID, 10))
-		exist, err := c.rc.Exist(ctx, key)
-		if exist && err == nil {
-			cmds = append(cmds, cache.RedisCmd{
-				OpType: cache.INCRBY,
-				Payload: cache.RedisIncrByPayload{
-					Key: key,
-					Val: -purchasedItem.Amount,
-				},
-			})
-		}
+		cmds = append(cmds, cache.RedisCmd{
+			OpType: cache.INCRBYX,
+			Payload: cache.RedisIncrByXPayload{
+				Key: key,
+				Val: -purchasedItem.Amount,
+			},
+		})
 	}
 	if len(cmds) > 0 {
 		c.logError(c.rc.ExecPipeLine(ctx, &cmds))
@@ -301,16 +298,13 @@ func (c *ProductRepoCacheImpl) RollbackProductInventory(ctx context.Context, ide
 	var cmds []cache.RedisCmd
 	for _, idempotency := range *idempotencies {
 		key := pkg.Join("productinventory:", strconv.FormatUint(idempotency.ProductID, 10))
-		exist, err := c.rc.Exist(ctx, key)
-		if exist && err == nil {
-			cmds = append(cmds, cache.RedisCmd{
-				OpType: cache.INCRBY,
-				Payload: cache.RedisIncrByPayload{
-					Key: key,
-					Val: idempotency.Amount,
-				},
-			})
-		}
+		cmds = append(cmds, cache.RedisCmd{
+			OpType: cache.INCRBYX,
+			Payload: cache.RedisIncrByXPayload{
+				Key: key,
+				Val: idempotency.Amount,
+			},
+		})
 	}
 	if len(cmds) > 0 {
 		c.logError(c.rc.ExecPipeLine(ctx, &cmds))
