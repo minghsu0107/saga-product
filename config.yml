@@ -17,7 +17,6 @@ redisConfig:
   poolSize: 10
   maxRetries: 3
   expirationSeconds: 900
-  idleTimeoutSeconds: 30
   useCuckoo: true
   cuckoo:
     capacity: 600000

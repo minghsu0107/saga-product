@@ -4,15 +4,14 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/ThreeDotsLabs/watermill/components/metrics"
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/go-redis/redis/extra/redisotel/v8"
-	"github.com/go-redis/redis/v8"
 	conf "github.com/minghsu0107/saga-product/config"
-	redistream "github.com/minghsu0107/watermill-redistream/pkg/redis"
+	"github.com/minghsu0107/watermill-redisstream/pkg/redisstream"
 	prom "github.com/prometheus/client_golang/prometheus"
+	"github.com/redis/go-redis/extra/redisotel/v9"
+	"github.com/redis/go-redis/v9"
 )
 
 type RedisPublisher message.Publisher
@@ -31,7 +30,6 @@ func NewRedisPublisher(config *conf.Config) (RedisPublisher, error) {
 		Password:      config.RedisConfig.Password,
 		PoolSize:      config.RedisConfig.PoolSize,
 		MaxRetries:    config.RedisConfig.MaxRetries,
-		IdleTimeout:   time.Duration(config.RedisConfig.IdleTimeoutSeconds) * time.Second,
 		ReadOnly:      true,
 		RouteRandomly: true,
 	})
@@ -39,15 +37,17 @@ func NewRedisPublisher(config *conf.Config) (RedisPublisher, error) {
 	if err == redis.Nil || err != nil {
 		return nil, err
 	}
-	RedisClient.AddHook(redisotel.NewTracingHook())
+	redisotel.InstrumentTracing(RedisClient)
 	config.Logger.ContextLogger.WithField("type", "setup:redis").Info("successful redis connection: " + pong)
 
-	publisherConfig := redistream.PublisherConfig{
+	publisherConfig := redisstream.PublisherConfig{
+		Client:     RedisClient,
+		Marshaller: &redisstream.DefaultMarshallerUnmarshaller{},
 		Maxlens: map[string]int64{
 			conf.PurchaseResultTopic: config.RedisConfig.Publisher.PurchaseResultTopicMaxlen,
 		},
 	}
-	ResultPublisher, err = redistream.NewPublisher(ctx, publisherConfig, RedisClient, &redistream.DefaultMarshaller{}, logger)
+	ResultPublisher, err = redisstream.NewPublisher(publisherConfig, logger)
 	if err != nil {
 		return nil, err
 	}
