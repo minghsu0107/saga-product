@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ThreeDotsLabs/watermill-redisstream/pkg/redisstream"
 	"github.com/ThreeDotsLabs/watermill/components/metrics"
 	"github.com/ThreeDotsLabs/watermill/message"
 	conf "github.com/minghsu0107/saga-product/config"
-	"github.com/minghsu0107/watermill-redisstream/pkg/redisstream"
 	prom "github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
