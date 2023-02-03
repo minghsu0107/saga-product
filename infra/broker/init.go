@@ -16,7 +16,7 @@ func InitializeRouter(app string) (*message.Router, error) {
 	if err != nil {
 		return nil, err
 	}
-	registry, ok := prom.DefaultGatherer.(*prom.Registry)
+	registry, ok := prom.DefaultRegisterer.(*prom.Registry)
 	if !ok {
 		return nil, fmt.Errorf("prometheus type casting error")
 	}

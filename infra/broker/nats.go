@@ -37,7 +37,7 @@ func NewNATSPublisher(config *conf.Config) (NATSPublisher, error) {
 		return nil, err
 	}
 
-	registry, ok := prom.DefaultGatherer.(*prom.Registry)
+	registry, ok := prom.DefaultRegisterer.(*prom.Registry)
 	if !ok {
 		return nil, fmt.Errorf("prometheus type casting error")
 	}
@@ -71,7 +71,7 @@ func NewNATSSubscriber(config *conf.Config) (NATSSubscriber, error) {
 		return nil, err
 	}
 
-	registry, ok := prom.DefaultGatherer.(*prom.Registry)
+	registry, ok := prom.DefaultRegisterer.(*prom.Registry)
 	if !ok {
 		return nil, fmt.Errorf("prometheus type casting error")
 	}
