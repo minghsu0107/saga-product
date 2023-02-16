@@ -41,7 +41,7 @@ func (lc *LocalCacheImpl) Get(key string, dst interface{}) (bool, error) {
 	} else if err != nil {
 		return false, err
 	} else {
-		if err = json.Unmarshal([]byte(val), dst); err != nil {
+		if err = json.Unmarshal(val, dst); err != nil {
 			return false, err
 		}
 	}
